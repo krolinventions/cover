@@ -1,14 +1,25 @@
-# SimpleLanguage
+# Cover
 
-A simple demonstration language built using Truffle for the GraalVM.
+Cover aims to implement a superset of a subset of C++ using the Truffle framework. The goal is to be able to run parts of your existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace.
 
-SimpleLanguage is heavily documented to explain the how and why of writing a
-Truffle language. A good way to read this documentation is to generate HTML of
-the JavaDoc comments and read that, and then read the source alongside the
-comments.
+This project is at a very early stage. 
 
-This repository is licensed under the permissive UPL licence. Fork it to begin
-your own Truffle language.
+## Design
+
+Cover aims to support the following C++ features:
+* standard C++ syntax
+* basic types, control flow
+* objects and multiple inheritance
+* virtual functions
+* basic standard library
+* basic preprocessor support
+
+Does NOT support the following C++ features:
+* delete: everything is garbage collected
+* pointer arithmetic and casting to incompatible types
+* exceptions
+
+This repository is licensed under the permissive UPL licence.
 
 ## Prerequisites
 * JDK 8
@@ -16,12 +27,12 @@ your own Truffle language.
 
 ## Installation
 
-* Clone SL repository using
-  `git clone https://github.com/graalvm/simplelanguage`
+* Clone the repository using
+  `git clone https://github.com/TODO`
 * Download Graal VM Development Kit from 
   http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads
-* Unpack the downloaded `graalvm_*.tar.gz` into `simplelanguage/graalvm`. 
-* Verify that the file `simplelanguage/graalvm/bin/java` exists and is executable
+* Unpack the downloaded `graalvm_*.tar.gz` into `cover/graalvm`, or add a symlink.
+* Verify that the file `cover/graalvm/bin/java` exists and is executable
 * Execute `mvn package`
 
 ## IDE Setup 
@@ -30,22 +41,22 @@ your own Truffle language.
 * Tested with Eclipse Mars SR2
 * Open Eclipse with a new workspace
 * Install `m2e` and `m2e-apt` plugins from the Eclipse marketplace (Help -> Eclipse Marketplace...)
-* File -> Import... -> Existing Maven Projects -> Select `simplelanguage` folder -> Finish
+* File -> Import... -> Existing Maven Projects -> Select `cover` folder -> Finish
 
 ### Netbeans
 * Tested with Netbeans 8.1
 * Open Netbeans
-* File -> Open Project -> Select `simplelanguage` folder -> Open Project
+* File -> Open Project -> Select `cover` folder -> Open Project
 
 ### IntelliJ IDEA
 * Tested with IntelliJ 2016.1.3 Community Edition
 * Open IntelliJ IDEA
-* File -> New -> Project from existing Sources -> Select `simplelanguage` folder -> Click next and keep everything default on several screens -> Finish
+* File -> New -> Project from existing Sources -> Select `cover` folder -> Click next and keep everything default on several screens -> Finish
 
 ## Running
 
-* Execute `./sl tests/HelloWorld.sl` to run a simple language source file.
-* Execute `./sl -disassemble tests/SumPrint.sl` to see assembly code for Truffle compiled functions.
+* Execute `./cover tests/HelloWorld.cpp` to run a simple language source file.
+* Execute `./cover -disassemble tests/SumPrint.cpp` to see assembly code for Truffle compiled functions.
 
 ## IGV
 
@@ -53,11 +64,11 @@ your own Truffle language.
   https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/
 * Unpack the downloaded `.zip` file  
 * Execute `bin/idealgraphvsiualizer` to start IGV
-* Execute `./sl -dump tests/SumPrint.sl` to dump graphs to IGV.
+* Execute `./sl -dump tests/SumPrint.cpp` to dump graphs to IGV.
 
 ## Debugging
 
-* Execute `./sl -debug tests/HelloWorld.sl`.
+* Execute `./cover -debug tests/HelloWorld.cpp`.
 * Attach a Java remote debugger (like Eclipse) on port 8000.
 
 ## Further information
@@ -74,6 +85,4 @@ your own Truffle language.
 ## License
 
 The Truffle framework is licensed under the [GPL 2 with Classpath exception](http://openjdk.java.net/legal/gplv2+ce.html).
-The SimpleLanguage is licensed under the [Universal Permissive License (UPL)](http://opensource.org/licenses/UPL).
-
-
+The Cover language is licensed under the [Universal Permissive License (UPL)](http://opensource.org/licenses/UPL).
