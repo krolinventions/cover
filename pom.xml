@@ -57,6 +57,7 @@
 						<include>**/*TestSuite.java</include>
 						<include>**/*Test.java</include>
 					</includes>
+					<skipTests>true</skipTests>
 				</configuration>
 			</plugin>
 		</plugins>

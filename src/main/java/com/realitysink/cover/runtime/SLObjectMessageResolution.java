@@ -50,7 +50,7 @@ import com.realitysink.cover.nodes.access.SLReadPropertyCacheNodeGen;
 import com.realitysink.cover.nodes.access.SLWritePropertyCacheNodeGen;
 import com.realitysink.cover.nodes.call.SLDispatchNodeGen;
 import com.realitysink.cover.nodes.interop.SLForeignToSLTypeNodeGen;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.nodes.access.SLReadPropertyCacheNode;
 import com.realitysink.cover.nodes.access.SLWritePropertyCacheNode;
 import com.realitysink.cover.nodes.call.SLDispatchNode;
@@ -59,7 +59,7 @@ import com.realitysink.cover.nodes.interop.SLForeignToSLTypeNode;
 /**
  * The class containing all message resolution implementations of an SL object.
  */
-@MessageResolution(receiverType = SLObjectType.class, language = SLLanguage.class)
+@MessageResolution(receiverType = SLObjectType.class, language = CoverLanguage.class)
 public class SLObjectMessageResolution {
     /*
      * An SL object resolves the WRITE message and maps it to an object property write access.

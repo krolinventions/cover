@@ -49,13 +49,13 @@ import com.oracle.truffle.api.interop.Resolve;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.realitysink.cover.nodes.call.SLDispatchNodeGen;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.nodes.call.SLDispatchNode;
 
 /**
  * The class containing all message resolution implementations of {@link SLFunction}.
  */
-@MessageResolution(receiverType = SLFunction.class, language = SLLanguage.class)
+@MessageResolution(receiverType = SLFunction.class, language = CoverLanguage.class)
 public class SLFunctionMessageResolution {
     /*
      * An SL function resolves an EXECUTE message.

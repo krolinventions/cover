@@ -68,7 +68,7 @@ import com.realitysink.cover.builtins.SLNewObjectBuiltinFactory;
 import com.realitysink.cover.builtins.SLPrintlnBuiltinFactory;
 import com.realitysink.cover.builtins.SLReadlnBuiltinFactory;
 import com.realitysink.cover.builtins.SLStackTraceBuiltinFactory;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.builtins.SLBuiltinNode;
 import com.realitysink.cover.builtins.SLPrintlnBuiltin;
 import com.realitysink.cover.builtins.SLReadlnBuiltin;
@@ -77,7 +77,7 @@ import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 
 /**
- * The run-time state of SL during execution. The context is created by the {@link SLLanguage}. It
+ * The run-time state of SL during execution. The context is created by the {@link CoverLanguage}. It
  * is used, for example, by {@link SLBuiltinNode#getContext() builtin functions}.
  * <p>
  * It would be an error to have two different context instances during the execution of one script.

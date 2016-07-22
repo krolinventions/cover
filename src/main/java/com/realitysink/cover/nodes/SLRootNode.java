@@ -45,7 +45,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.builtins.SLBuiltinNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 
@@ -64,14 +64,14 @@ public class SLRootNode extends RootNode {
     private final String name;
 
     public SLRootNode(FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name) {
-        super(SLLanguage.class, sourceSection, frameDescriptor);
+        super(CoverLanguage.class, sourceSection, frameDescriptor);
         this.bodyNode = bodyNode;
         this.name = name;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        assert SLLanguage.INSTANCE.findContext() != null;
+        assert CoverLanguage.INSTANCE.findContext() != null;
         return bodyNode.executeGeneric(frame);
     }
 

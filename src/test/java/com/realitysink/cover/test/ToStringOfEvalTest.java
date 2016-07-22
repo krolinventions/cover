@@ -42,7 +42,7 @@ package com.realitysink.cover.test;
 
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 
 import java.io.IOException;
 
@@ -70,7 +70,7 @@ public class ToStringOfEvalTest {
 
     @Test
     public void checkToStringOnAFunction() throws IOException {
-        PolyglotEngine.Language sl = engine.getLanguages().get(SLLanguage.MIME_TYPE);
+        PolyglotEngine.Language sl = engine.getLanguages().get(CoverLanguage.MIME_TYPE);
         sl.eval(Source.fromText("function checkName() {}", "defineFn"));
         PolyglotEngine.Value value1 = engine.findGlobalSymbol("checkName");
         PolyglotEngine.Value value2 = engine.findGlobalSymbol("checkName");

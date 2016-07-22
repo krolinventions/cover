@@ -188,7 +188,7 @@ public final class SLMain {
     public static void main(String[] args) throws IOException {
         Source source;
         if (args.length == 0) {
-            source = Source.fromReader(new InputStreamReader(System.in), "<stdin>").withMimeType(SLLanguage.MIME_TYPE);
+            source = Source.fromReader(new InputStreamReader(System.in), "<stdin>").withMimeType(CoverLanguage.MIME_TYPE);
         } else {
             source = Source.fromFileName(args[0]);
         }
@@ -200,7 +200,7 @@ public final class SLMain {
         out.println("== running on " + Truffle.getRuntime().getName());
 
         PolyglotEngine engine = PolyglotEngine.newBuilder().setIn(in).setOut(out).build();
-        assert engine.getLanguages().containsKey(SLLanguage.MIME_TYPE);
+        assert engine.getLanguages().containsKey(CoverLanguage.MIME_TYPE);
 
         try {
             Value result = engine.eval(source);

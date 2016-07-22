@@ -55,7 +55,7 @@ import com.realitysink.cover.nodes.SLStatementNodeWrapper;
  * statements, i.e., without returning a value. The {@link VirtualFrame} provides access to the
  * local variables.
  */
-@NodeInfo(language = "SL", description = "The abstract base node for all SL statements")
+@NodeInfo(language = "Cover", description = "The abstract base node for all Cover statements")
 @Instrumentable(factory = SLStatementNodeWrapper.class)
 public abstract class SLStatementNode extends Node {
 

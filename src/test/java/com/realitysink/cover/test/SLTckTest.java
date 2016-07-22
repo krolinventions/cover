@@ -47,7 +47,7 @@ import org.junit.Test;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.tck.TruffleTCK;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 
 /**
  * This is the way to verify your language implementation is compatible.
@@ -58,7 +58,7 @@ public class SLTckTest extends TruffleTCK {
     @Test
     public void testVerifyPresence() {
         PolyglotEngine vm = PolyglotEngine.newBuilder().build();
-        assertTrue("Our language is present", vm.getLanguages().containsKey(SLLanguage.MIME_TYPE));
+        assertTrue("Our language is present", vm.getLanguages().containsKey(CoverLanguage.MIME_TYPE));
         vm.dispose();
     }
 
@@ -115,7 +115,7 @@ public class SLTckTest extends TruffleTCK {
                 "  return obj;\n" +
                 "}\n",
                 "SL TCK"
-            ).withMimeType(SLLanguage.MIME_TYPE)
+            ).withMimeType(CoverLanguage.MIME_TYPE)
         );
         // @formatter:on
         return vm;
@@ -123,7 +123,7 @@ public class SLTckTest extends TruffleTCK {
 
     @Override
     protected String mimeType() {
-        return SLLanguage.MIME_TYPE;
+        return CoverLanguage.MIME_TYPE;
     }
 
     @Override

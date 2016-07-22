@@ -49,12 +49,12 @@ import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.dsl.internal.DSLOptions;
 import com.realitysink.cover.nodes.SLTypesGen;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.runtime.SLFunction;
 import com.realitysink.cover.runtime.SLNull;
 
 /**
- * The type system of SL, as explained in {@link SLLanguage}. Based on the {@link TypeSystem}
+ * The type system of SL, as explained in {@link CoverLanguage}. Based on the {@link TypeSystem}
  * annotation, the Truffle DSL generates the subclass {@link SLTypesGen} with type test and type
  * conversion methods for all types. In this class, we only cover types where the automatically
  * generated ones would not be sufficient.

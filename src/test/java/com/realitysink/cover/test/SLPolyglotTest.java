@@ -44,7 +44,7 @@ import org.junit.Test;
 
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.api.vm.PolyglotEngine.Language;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 
 import java.io.IOException;
 
@@ -65,7 +65,7 @@ public class SLPolyglotTest {
     @Test
     public void accessGlobalObject() throws IOException {
         vm = PolyglotEngine.newBuilder().build();
-        Language lang = vm.getLanguages().get(SLLanguage.MIME_TYPE);
+        Language lang = vm.getLanguages().get(CoverLanguage.MIME_TYPE);
         PolyglotEngine.Value global = lang.getGlobalObject();
         Object globalValue = global.get();
         assertNotNull("There is global context in SL", globalValue);

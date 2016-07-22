@@ -62,21 +62,21 @@ import com.realitysink.cover.parser.Parser;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
 
-@TruffleLanguage.Registration(name = "SL", version = "0.12", mimeType = SLLanguage.MIME_TYPE)
+@TruffleLanguage.Registration(name = "Cover", version = "0.1", mimeType = CoverLanguage.MIME_TYPE)
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
-public final class SLLanguage extends TruffleLanguage<SLContext> {
+public final class CoverLanguage extends TruffleLanguage<SLContext> {
 
-    public static final String MIME_TYPE = "application/x-sl";
+    public static final String MIME_TYPE = "application/x-cover";
 
     /**
      * The singleton instance of the language.
      */
-    public static final SLLanguage INSTANCE = new SLLanguage();
+    public static final CoverLanguage INSTANCE = new CoverLanguage();
 
     /**
      * No instances allowed apart from the {@link #INSTANCE singleton instance}.
      */
-    private SLLanguage() {
+    private CoverLanguage() {
     }
 
     @Override

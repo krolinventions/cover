@@ -74,7 +74,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.EventConsumer;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.api.vm.PolyglotEngine.Value;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 
 public class SLDebugTest {
     private Debugger debugger;
@@ -128,7 +128,7 @@ public class SLDebugTest {
                         "  nMOFact = fac(nMinusOne);\n" +
                         "  res = n * nMOFact;\n" +
                         "  return res;\n" + "}\n",
-                        "factorial.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        "factorial.sl").withMimeType(CoverLanguage.MIME_TYPE);
     }
 
     private static Source createFactorialWithDebugger() {
@@ -144,7 +144,7 @@ public class SLDebugTest {
                         "  debugger;\n" +
                         "  res = n * nMOFact;\n" +
                         "  return res;\n" + "}\n",
-                        "factorial.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        "factorial.sl").withMimeType(CoverLanguage.MIME_TYPE);
     }
 
     private static Source createInteropComputation() {
@@ -157,7 +157,7 @@ public class SLDebugTest {
                         "  }\n" +
                         "  return executing;\n" +
                         "}\n",
-                        "interopComputation.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        "interopComputation.sl").withMimeType(CoverLanguage.MIME_TYPE);
     }
 
     protected final String getOut() {
@@ -568,7 +568,7 @@ public class SLDebugTest {
         private final ExecNotifyHandler nh;
 
         ExecNotifyReadNode(ExecNotifyHandler nh) {
-            super(SLLanguage.class, null, null);
+            super(CoverLanguage.class, null, null);
             this.nh = nh;
         }
 

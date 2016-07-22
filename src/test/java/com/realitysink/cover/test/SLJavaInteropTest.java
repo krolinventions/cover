@@ -54,7 +54,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.java.JavaInterop;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.runtime.SLFunction;
 
 public class SLJavaInteropTest {
@@ -76,7 +76,7 @@ public class SLJavaInteropTest {
     @Test
     public void asFunction() throws Exception {
         String scriptText = "function test() {\n" + "    println(\"Called!\");\n" + "}\n";
-        Source script = Source.fromText(scriptText, "Test").withMimeType(SLLanguage.MIME_TYPE);
+        Source script = Source.fromText(scriptText, "Test").withMimeType(CoverLanguage.MIME_TYPE);
         engine.eval(script);
         PolyglotEngine.Value main = engine.findGlobalSymbol("test");
         final Object value = main.get();

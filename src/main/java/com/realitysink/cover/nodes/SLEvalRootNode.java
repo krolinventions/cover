@@ -47,7 +47,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.runtime.SLContext;
 
 /**
@@ -78,7 +78,7 @@ public final class SLEvalRootNode extends SLRootNode {
             /* Function registration is a slow-path operation that must not be compiled. */
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            context = SLLanguage.INSTANCE.findContext();
+            context = CoverLanguage.INSTANCE.findContext();
             context.getFunctionRegistry().register(functions);
         }
 

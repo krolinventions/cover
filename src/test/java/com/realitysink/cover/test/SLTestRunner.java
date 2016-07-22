@@ -80,7 +80,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.realitysink.cover.test.SLTestRunner.TestCase;
 import com.realitysink.cover.SLException;
-import com.realitysink.cover.SLLanguage;
+import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.SLMain;
 import com.realitysink.cover.builtins.SLBuiltinNode;
 import com.realitysink.cover.parser.Parser;
@@ -317,7 +317,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
     }
 
     private static void run(PolyglotEngine engine, Path path, PrintWriter out) throws IOException {
-        SLContext context = (SLContext) engine.getLanguages().get(SLLanguage.MIME_TYPE).getGlobalObject().get();
+        SLContext context = (SLContext) engine.getLanguages().get(CoverLanguage.MIME_TYPE).getGlobalObject().get();
 
         for (NodeFactory<? extends SLBuiltinNode> builtin : builtins) {
             context.installBuiltin(builtin);
