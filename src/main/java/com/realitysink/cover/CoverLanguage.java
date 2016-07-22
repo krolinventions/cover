@@ -58,9 +58,10 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.realitysink.cover.nodes.SLEvalRootNode;
 import com.realitysink.cover.nodes.SLRootNode;
-import com.realitysink.cover.parser.Parser;
+import com.realitysink.cover.parser.CoverParser;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
+import com.realitysink.cover.slparser.SLParser;
 
 @TruffleLanguage.Registration(name = "Cover", version = "0.1", mimeType = CoverLanguage.MIME_TYPE)
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
@@ -94,7 +95,7 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
              * Parse the provided source. At this point, we do not have a SLContext yet.
              * Registration of the functions with the SLContext happens lazily in SLEvalRootNode.
              */
-            functions = Parser.parseSL(source);
+            functions = CoverParser.parseSource(source);
         } catch (Throwable ex) {
             /*
              * The specification says that exceptions during parsing have to wrapped with an

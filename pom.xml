@@ -12,6 +12,13 @@
 		<m2e.apt.activation>jdt_apt</m2e.apt.activation>
 	</properties>
 
+	<repositories>
+	    <repository>
+	        <id>local-maven-repo</id>
+	        <url>file://./local-maven-repo</url>
+	    </repository>
+	</repositories>
+	
 	<dependencies>
 		<dependency>
 			<groupId>com.oracle.truffle</groupId>
@@ -36,6 +43,17 @@
 			<version>4.11</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+		    <groupId>org.eclipse.equinox</groupId>
+		    <artifactId>common</artifactId>
+		    <version>3.6.200-v20130402-1505</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.eclipse.cdt</groupId>
+		    <artifactId>cdt-core</artifactId>
+		    <version>6.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -59,6 +77,32 @@
 					</includes>
 					<skipTests>true</skipTests>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>1.6</version>
+				<configuration>
+				    <filters>
+				        <filter>
+				            <artifact>*:*</artifact>
+				            <excludes>
+				                <exclude>META-INF/*.SF</exclude>
+				                <exclude>META-INF/*.DSA</exclude>
+				                <exclude>META-INF/*.RSA</exclude>
+				            </excludes>
+				        </filter>
+				    </filters>
+				    <!-- Additional configuration. -->
+				</configuration>				
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 		<pluginManagement>

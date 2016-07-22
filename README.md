@@ -33,6 +33,7 @@ This repository is licensed under the permissive UPL licence.
   http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads
 * Unpack the downloaded `graalvm_*.tar.gz` into `cover/graalvm`, or add a symlink.
 * Verify that the file `cover/graalvm/bin/java` exists and is executable
+* Execute `mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=lib/org.eclipse.cdt.core_6.0.0.201607151550.jar -DgroupId=org.eclipse.cdt -DartifactId=cdt-core -Dversion=6.0.0 -Dpackaging=jar`
 * Execute `mvn package`
 
 ## IDE Setup 

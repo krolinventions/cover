@@ -78,12 +78,12 @@ import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
+import com.realitysink.cover.slparser.SLParser;
 import com.realitysink.cover.test.SLTestRunner.TestCase;
 import com.realitysink.cover.SLException;
 import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.SLMain;
 import com.realitysink.cover.builtins.SLBuiltinNode;
-import com.realitysink.cover.parser.Parser;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
 import com.realitysink.cover.runtime.SLNull;
@@ -325,7 +325,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
 
         /* Parse the SL source file. */
         Source source = Source.fromFileName(path.toString());
-        context.getFunctionRegistry().register(Parser.parseSL(source));
+        context.getFunctionRegistry().register(SLParser.parseSL(source));
 
         /* Lookup our main entry point, which is per definition always named "main". */
         SLFunction mainFunction = context.getFunctionRegistry().lookup("main", false);
