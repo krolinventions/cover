@@ -56,8 +56,9 @@ This repository is licensed under the permissive UPL licence.
 
 ## Running
 
-* Execute `./cover tests/HelloWorld.cpp` to run a simple language source file.
-* Execute `./cover -disassemble tests/SumPrint.cpp` to see assembly code for Truffle compiled functions.
+* Execute `./cover tests/HelloWorld.cover` to run a simple language source file.
+* Execute `gcc -x c++ -o hello tests/HelloWorld.cover` and then `./hello` to verify that the cover file is also valid C++.
+* Execute `./cover -disassemble tests/SumPrint.cover` to see assembly code for Truffle compiled functions.
 
 ## IGV
 
@@ -65,7 +66,7 @@ This repository is licensed under the permissive UPL licence.
   https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/
 * Unpack the downloaded `.zip` file  
 * Execute `bin/idealgraphvsiualizer` to start IGV
-* Execute `./sl -dump tests/SumPrint.cpp` to dump graphs to IGV.
+* Execute `./sl -dump tests/SumPrint.cover` to dump graphs to IGV.
 
 ## Debugging
 

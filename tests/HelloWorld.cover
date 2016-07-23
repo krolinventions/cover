@@ -1,3 +1,10 @@
-void main() {  
-  println("Hello World!");  
-}  
+#include <stdio.h>
+
+int main() {
+	for (int i=0;i<10;i++) {
+		puts("Loop!");
+	}
+	puts("Hello World from Cover!");
+	puts("Bye!");
+	return 0;
+}

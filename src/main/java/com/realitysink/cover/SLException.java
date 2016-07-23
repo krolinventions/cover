@@ -111,7 +111,7 @@ public class SLException extends RuntimeException {
                      */
                     lineNumber = -1;
                 }
-                stackTrace.add(new StackTraceElement("SL", methodName, sourceName, lineNumber));
+                stackTrace.add(new StackTraceElement("Cover", methodName, sourceName, lineNumber));
                 return null;
             }
         });
