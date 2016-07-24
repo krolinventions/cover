@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeFactory;
@@ -22,6 +23,7 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
+import com.realitysink.cover.nodes.controlflow.ReadArgumentIntoFrameNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
@@ -35,6 +37,7 @@ import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
+import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
 import com.realitysink.cover.runtime.SLFunction;
@@ -123,7 +126,7 @@ public class CoverParser {
 
         SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
         FrameSlot[] arguments = new FrameSlot[0];
-        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(arguments, blockNode);
+        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(blockNode);
         final SLRootNode rootNode = new SLRootNode(frameDescriptor, functionBodyNode, null, "_file");
         result.put("_file", rootNode);
 
@@ -338,8 +341,10 @@ public class CoverParser {
         FrameDescriptor newFrame = new FrameDescriptor();
         CPPASTFunctionDeclarator declarator = (CPPASTFunctionDeclarator) functionDefintion.getDeclarator();
         ICPPASTParameterDeclaration[] parameters = declarator.getParameters();
-        List<FrameSlot> arguments = new ArrayList<FrameSlot>();
-        for (ICPPASTParameterDeclaration parameter : parameters) {
+        FrameSlot[] argumentArray = new FrameSlot[parameters.length];
+        SLStatementNode[] readArgumentsStatements = new SLStatementNode[parameters.length];
+        for (int i = 0;i<parameters.length;i++) {
+            ICPPASTParameterDeclaration parameter = parameters[i];
             String name = parameter.getDeclarator().getName().getRawSignature();
             String rawSignature = parameter.getDeclSpecifier().getRawSignature();
             FrameSlotKind kind = FrameSlotKind.Object;
@@ -347,16 +352,25 @@ public class CoverParser {
                 kind = FrameSlotKind.Int;
             }
             FrameSlot frameSlot = newFrame.addFrameSlot(name, kind);
-            arguments.add(frameSlot);
+            argumentArray[i] = frameSlot;
+            
+            // copy to local var in the prologue
+            final SLReadArgumentNode readArg = new SLReadArgumentNode(i+1);
+            SLExpressionNode assignment = SLWriteLocalVariableNodeGen.create(readArg, frameSlot);
+            readArgumentsStatements[i] = assignment;
         }
+        
+        SLBlockNode readArgumentsNode = new SLBlockNode(readArgumentsStatements);
         
         IASTStatement s = functionDefintion.getBody();
         SLStatementNode blockNode = processStatement(newFrame, s);
-        FrameSlot[] argumentArray = arguments.toArray(new FrameSlot[arguments.size()]);
-        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(argumentArray, blockNode);
+        SLBlockNode wrappedBodyNode = new SLBlockNode(new SLStatementNode[] {readArgumentsNode, blockNode});
+        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(wrappedBodyNode);
+        
+        // we will now add code to read the arguments into the frame
+        // load local variables from arguments
+        
         String functionName = declarator.getName().toString();
-        System.err.println("Function name: " + functionName);
-
         // for int main() {} we create a main = (int)(){} assignment
         FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(functionName);
         SLFunction function = new SLFunction(functionName);
