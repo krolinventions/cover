@@ -5,14 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.realitysink.cover.CoverLanguage;
@@ -31,7 +29,6 @@ import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLAddNode;
 import com.realitysink.cover.nodes.expression.SLAddNodeGen;
 import com.realitysink.cover.nodes.expression.SLEqualNodeGen;
-import com.realitysink.cover.nodes.expression.SLFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
@@ -43,10 +40,7 @@ import com.realitysink.cover.runtime.SLFunction;
 
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -73,9 +67,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
-import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTParameterDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTReturnStatement;
-import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTUnaryExpression;
@@ -83,13 +75,6 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTWhileStatement;
 import org.eclipse.core.runtime.CoreException;
 
 public class CoverParser {
-    private static final class NopStatement extends SLStatementNode {
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            // ignore
-        }
-    }
-
     public static Map<String, SLRootNode> parseSource(Source source) throws CoreException {
         Map<String, SLRootNode> result = new HashMap<String, SLRootNode>();
 
@@ -124,7 +109,6 @@ public class CoverParser {
         statements.add(new SLInvokeNode(new CoverFunctionLiteralNode("main"), new SLExpressionNode[0]));
 
         SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
-        FrameSlot[] arguments = new FrameSlot[0];
         final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(blockNode);
         final SLRootNode rootNode = new SLRootNode(frameDescriptor, functionBodyNode, null, "_file");
         result.put("_file", rootNode);
