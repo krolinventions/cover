@@ -28,10 +28,13 @@ import com.realitysink.cover.nodes.controlflow.SLWhileNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLAddNode;
 import com.realitysink.cover.nodes.expression.SLAddNodeGen;
+import com.realitysink.cover.nodes.expression.SLDivNodeGen;
 import com.realitysink.cover.nodes.expression.SLEqualNodeGen;
 import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
+import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
+import com.realitysink.cover.nodes.expression.SLSubNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
 import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
@@ -265,6 +268,22 @@ public class CoverParser {
             FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(x.getRawSignature());
             SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
             return SLWriteLocalVariableNodeGen.create(rightNode, frameSlot);
+        } else if (operator == CPPASTBinaryExpression.op_multiply) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
+            return SLMulNodeGen.create(leftNode, rightNode);
+        } else if (operator == CPPASTBinaryExpression.op_divide) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
+            return SLDivNodeGen.create(leftNode, rightNode);
+        } else if (operator == CPPASTBinaryExpression.op_plus) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
+            return SLAddNodeGen.create(leftNode, rightNode);
+        } else if (operator == CPPASTBinaryExpression.op_minus) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
+            return SLSubNodeGen.create(leftNode, rightNode);
         } 
         throw new CoverParseException(expression, "unknown operator type " + operator);
     }
@@ -282,6 +301,8 @@ public class CoverParser {
             change = 1;
         } else if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_prefixDecr) {
             change = -1;
+        } else if (operator == IASTUnaryExpression.op_bracketedPrimary) {
+            return processExpression(frameDescriptor, node.getOperand());
         } else {
             throw new CoverParseException(node, "Unsupported operator type " + operator);
         }
@@ -307,8 +328,7 @@ public class CoverParser {
         CPPASTDeclarator d = (CPPASTDeclarator) s.getDeclarators()[0];
         String name = d.getName().getRawSignature();
         CPPASTEqualsInitializer i = (CPPASTEqualsInitializer) d.getInitializer();
-        CPPASTLiteralExpression literal = (CPPASTLiteralExpression) i.getInitializerClause();
-        SLExpressionNode expression = processLiteral(frameDescriptor, literal);
+        SLExpressionNode expression = processExpression(frameDescriptor, (IASTExpression) i.getInitializerClause());
         FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(name);
 
         return SLWriteLocalVariableNodeGen.create(expression, frameSlot);
