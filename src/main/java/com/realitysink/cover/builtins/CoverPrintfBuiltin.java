@@ -40,18 +40,15 @@
  */
 package com.realitysink.cover.builtins;
 
-import java.io.PrintWriter;
-
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.SLExpressionNode;
-import com.realitysink.cover.nodes.SLStatementNode;
 
 @NodeInfo(shortName = "printf")
-public class CoverPrintfBuiltin extends SLStatementNode {
+public class CoverPrintfBuiltin extends SLExpressionNode {
     @Children
     private final SLExpressionNode[] arguments;
 
@@ -61,7 +58,7 @@ public class CoverPrintfBuiltin extends SLStatementNode {
 
     @ExplodeLoop
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public Object executeGeneric(VirtualFrame frame) {
         CompilerAsserts.compilationConstant(arguments.length);
         String formatString = (String) arguments[0].executeGeneric(frame);
         Object[] printfArguments = new Object[arguments.length-1];
@@ -69,8 +66,9 @@ public class CoverPrintfBuiltin extends SLStatementNode {
             printfArguments[i-1] = arguments[i].executeGeneric(frame);
         }
         doPrintf(formatString, printfArguments);
+        return null; // is actually a void function
     }
-    
+
     @TruffleBoundary
     private static void doPrintf(String formatString, Object[] printfArguments) {
         System.out.format(formatString,printfArguments);

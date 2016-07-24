@@ -23,6 +23,7 @@ import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
+import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLAddNode;
@@ -66,6 +67,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionCallExpression
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTReturnStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
@@ -139,22 +141,27 @@ public class CoverParser {
         if (node instanceof CPPASTFunctionDefinition) {
             return processFunctionDefinition(frameDescriptor, node);
         } else if (node instanceof CPPASTExpressionStatement) {
-            // only support function calls for now...
-            return processStatement(frameDescriptor, node.getChildren()[0]);
-        } else if (node instanceof CPPASTFunctionCallExpression) {
-            return processFunctionCall(frameDescriptor, node);
+            CPPASTExpressionStatement x = (CPPASTExpressionStatement) node;
+            return processExpression(frameDescriptor, x.getExpression());
         } else if (node instanceof CPPASTDeclarationStatement) {
             return processDeclaration(frameDescriptor, (CPPASTDeclarationStatement) node);
-        } else if (node instanceof CPPASTUnaryExpression) {
-            return processUnary(frameDescriptor, (CPPASTUnaryExpression) node);
         } else if (node instanceof CPPASTWhileStatement) {
             return processWhile(frameDescriptor, (CPPASTWhileStatement) node);
         } else if (node instanceof CPPASTCompoundStatement) {
             return processCompoundStatement(frameDescriptor, (CPPASTCompoundStatement) node);
+        } else if (node instanceof CPPASTReturnStatement) {
+            return processReturn(frameDescriptor, (CPPASTReturnStatement) node);
+        } else if (node instanceof CPPASTBinaryExpression) {
+            return processBinaryExpression(frameDescriptor, (CPPASTBinaryExpression) node);
         } else {
-            System.err.println("WARNING, IGNORING UNKNOWN NODE TYPE: " + node.getClass().getSimpleName());
-            return new NopStatement();
+            throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
         }
+    }
+
+    private static SLStatementNode processReturn(FrameDescriptor frameDescriptor, CPPASTReturnStatement node) {
+        IASTExpression returnValue = node.getReturnValue();
+        final SLReturnNode returnNode = new SLReturnNode(processExpression(frameDescriptor, returnValue));
+        return returnNode;
     }
 
     private static SLStatementNode processWhile(FrameDescriptor frameDescriptor, CPPASTWhileStatement node) {
@@ -179,21 +186,34 @@ public class CoverParser {
             return processLiteral(frameDescriptor, (CPPASTLiteralExpression) expression);
         } else if (expression instanceof CPPASTIdExpression) {
             return processId(frameDescriptor, (CPPASTIdExpression) expression);                    
+        } else if (expression instanceof CPPASTFunctionCallExpression) {
+            return processFunctionCall(frameDescriptor, expression);
+        } else if (expression instanceof CPPASTUnaryExpression) {
+            return (SLExpressionNode) processUnary(frameDescriptor, (CPPASTUnaryExpression) expression);
         }
-        throw new CoverParseException(expression, "unknown expression type");
+        throw new CoverParseException(expression, "unknown expression type " + expression.getClass().getSimpleName());
     }
 
     private static SLExpressionNode processBinaryExpression(FrameDescriptor frameDescriptor, CPPASTBinaryExpression expression) {
         int operator = expression.getOperator();
-        SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
-        SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
         if (operator == CPPASTBinaryExpression.op_lessThan) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
             return SLLessThanNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_equals) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
             return SLEqualNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_greaterThan) {
             // FIXME: this messes with evaluation order!
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
             return SLEqualNodeGen.create(rightNode, leftNode);
+        } else if (operator == CPPASTBinaryExpression.op_plusAssign) {
+            SLExpressionNode change = processExpression(frameDescriptor, expression.getOperand2());
+            CPPASTIdExpression x = (CPPASTIdExpression) expression.getOperand1();
+            FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(x.getRawSignature());
+            return SLWriteLocalVariableNodeGen.create(SLAddNodeGen.create(SLReadLocalVariableNodeGen.create(frameSlot), change), frameSlot);
         } 
         throw new CoverParseException(expression, "unknown operator type " + operator);
     }
@@ -256,7 +276,7 @@ public class CoverParser {
         }
     }
 
-    private static SLStatementNode processFunctionCall(FrameDescriptor frameDescriptor, IASTNode node) {
+    private static SLExpressionNode processFunctionCall(FrameDescriptor frameDescriptor, IASTNode node) {
         CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
         String name = functionCall.getFunctionNameExpression().getRawSignature();
 
