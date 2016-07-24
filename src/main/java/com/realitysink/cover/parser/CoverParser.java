@@ -23,7 +23,6 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
-import com.realitysink.cover.nodes.controlflow.ReadArgumentIntoFrameNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
