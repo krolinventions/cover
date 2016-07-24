@@ -75,6 +75,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTBinaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompoundStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDoStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTEqualsInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTExpressionStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTForStatement;
@@ -155,6 +156,8 @@ public class CoverParser {
             return processDeclaration(frameDescriptor, (CPPASTDeclarationStatement) node);
         } else if (node instanceof CPPASTWhileStatement) {
             return processWhile(frameDescriptor, (CPPASTWhileStatement) node);
+        } else if (node instanceof CPPASTDoStatement) {
+            return processDo(frameDescriptor, (CPPASTDoStatement) node);
         } else if (node instanceof CPPASTCompoundStatement) {
             return processCompoundStatement(frameDescriptor, (CPPASTCompoundStatement) node);
         } else if (node instanceof CPPASTReturnStatement) {
@@ -166,6 +169,15 @@ public class CoverParser {
         } else {
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
         }
+    }
+
+    private static SLStatementNode processDo(FrameDescriptor frameDescriptor, CPPASTDoStatement node) {
+        // a do {} while() loop is just a while loop with the body prepended
+        SLExpressionNode conditionNode = processExpression(frameDescriptor, node.getCondition());
+        SLStatementNode bodyNode = processStatement(frameDescriptor, node.getBody());
+        final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
+        SLBlockNode blockNode = new SLBlockNode(new SLStatementNode[]{bodyNode, whileNode});
+        return blockNode;
     }
 
     private static SLStatementNode processForStatement(FrameDescriptor frameDescriptor, CPPASTForStatement node) {
@@ -402,7 +414,14 @@ public class CoverParser {
             String noQuotes = v.substring(1, v.length() - 1).replace("\\n", "\n");
             return new SLStringLiteralNode(noQuotes);
         } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
-            return new SLLongLiteralNode(Integer.parseInt(new String(y.getValue())));
+            String stringValue = new String(y.getValue());
+            final int intValue;
+            if (stringValue.startsWith("0x")) {
+                intValue = Integer.parseInt(stringValue.substring(2), 16);
+            } else {
+                intValue = Integer.parseInt(stringValue);
+            }
+            return new SLLongLiteralNode(intValue);
         } else if (y.getKind() == IASTLiteralExpression.lk_float_constant) {
             return new CoverDoubleLiteralNode(Double.parseDouble(new String(y.getValue())));
         } else {
