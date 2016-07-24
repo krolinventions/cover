@@ -62,6 +62,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTEqualsInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTExpressionStatement;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTForStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
@@ -145,9 +146,62 @@ public class CoverParser {
             return processReturn(frameDescriptor, (CPPASTReturnStatement) node);
         } else if (node instanceof CPPASTBinaryExpression) {
             return processBinaryExpression(frameDescriptor, (CPPASTBinaryExpression) node);
+        } else if (node instanceof CPPASTForStatement) {
+            return processForStatement(frameDescriptor, (CPPASTForStatement) node);
         } else {
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
         }
+    }
+
+    private static SLStatementNode processForStatement(FrameDescriptor frameDescriptor, CPPASTForStatement node) {
+        /*
+           -CPPASTForStatement (offset: 15,50) -> for (
+             -CPPASTDeclarationStatement (offset: 20,8) -> int i=0;
+               -CPPASTSimpleDeclaration (offset: 20,8) -> int i=0;
+                 -CPPASTSimpleDeclSpecifier (offset: 20,3) -> int
+                 -CPPASTDeclarator (offset: 24,3) -> i=0
+                   -CPPASTName (offset: 24,1) -> i
+                   -CPPASTEqualsInitializer (offset: 25,2) -> =0
+                     -CPPASTLiteralExpression (offset: 26,1) -> 0
+             -CPPASTBinaryExpression (offset: 28,4) -> i<12
+               -CPPASTIdExpression (offset: 28,1) -> i
+                 -CPPASTName (offset: 28,1) -> i
+               -CPPASTLiteralExpression (offset: 30,2) -> 12
+             -CPPASTUnaryExpression (offset: 33,3) -> i++
+               -CPPASTIdExpression (offset: 33,1) -> i
+                 -CPPASTName (offset: 33,1) -> i
+             -CPPASTCompoundStatement (offset: 38,27) -> {          printf("i=%d\n", i);    }
+         */
+        IASTStatement initializer = node.getInitializerStatement();
+        IASTExpression condition = node.getConditionExpression();
+        IASTExpression iteration = node.getIterationExpression();
+        SLStatementNode initializerNode = processStatement(frameDescriptor, initializer);
+        SLExpressionNode conditionNode = processExpression(frameDescriptor, condition);
+        SLExpressionNode iterationNode = processExpression(frameDescriptor, iteration);
+        SLStatementNode bodyNode = processStatement(frameDescriptor, node.getBody());
+        /*
+         * We turn this:
+         *   for (int i=0;i<x;i++) {}
+         * into:
+         *   {
+         *     int i = 0;
+         *     while (i < x) {
+         *       {...}
+         *       i++;
+         *     }
+         *   }
+         */
+        SLStatementNode[] loopNodes = new SLStatementNode[] {bodyNode, iterationNode};
+        SLBlockNode loopBlock = new SLBlockNode(loopNodes);
+        
+        // TODO: start a new scope, as currently the loop variable will escape!
+        
+        final SLWhileNode whileNode = new SLWhileNode(conditionNode, loopBlock);
+
+        SLStatementNode[] setupNodes = new SLStatementNode[] {initializerNode, whileNode}; 
+        SLBlockNode setupBlock = new SLBlockNode(setupNodes);
+        
+        return setupBlock;        
     }
 
     private static SLStatementNode processReturn(FrameDescriptor frameDescriptor, CPPASTReturnStatement node) {
