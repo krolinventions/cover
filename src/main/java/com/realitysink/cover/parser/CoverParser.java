@@ -28,11 +28,14 @@ import com.realitysink.cover.nodes.expression.SLFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
+import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
 import com.realitysink.cover.runtime.SLFunction;
 
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -46,10 +49,16 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ScannerInfo;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTEqualsInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTExpressionStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 
@@ -117,69 +126,119 @@ public class CoverParser {
     private static SLStatementNode processStatement(FrameDescriptor frameDescriptor, IASTNode node) {
         System.err.println("processStatement for " + node.getClass().getSimpleName());
         if (node instanceof CPPASTFunctionDefinition) {
-            CPPASTFunctionDefinition functionDefintion = (CPPASTFunctionDefinition) node;
-            FrameDescriptor newFrame = new FrameDescriptor();
-            IASTStatement s = functionDefintion.getBody();
-            IASTCompoundStatement compound = (IASTCompoundStatement) s;
-            List<SLStatementNode> statements = new ArrayList<SLStatementNode>();
-            for (IASTStatement statement : compound.getStatements()) {
-                statements.add(processStatement(newFrame, statement));
-            }
-            SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
-            final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(blockNode);
-            String functionName = functionDefintion.getDeclarator().getName().toString();
-            System.err.println("Function name: " + functionName);
-
-            // for int main() {} we create a main = (int)(){} assignment
-            FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(functionName);
-            SLFunction function = new SLFunction(functionName);
-            SLRootNode rootNode = new SLRootNode(newFrame, functionBodyNode, null, functionName);
-            RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-            function.setCallTarget(callTarget);
-            final SLExpressionNode result = new CoverWriteLocalVariableNodeNoEval(function, frameSlot);
-            return result;
+            return processFunctionDefinition(frameDescriptor, node);
         } else if (node instanceof CPPASTExpressionStatement) {
             // only support function calls for now...
             return processStatement(frameDescriptor, node.getChildren()[0]);
         } else if (node instanceof CPPASTFunctionCallExpression) {
-            CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
-            String name = functionCall.getFunctionNameExpression().getRawSignature();
-
-            if ("puts".equals(name)) {
-                NodeFactory<SLPrintlnBuiltin> printlnBuiltinFactory = SLPrintlnBuiltinFactory.getInstance();
-                CPPASTLiteralExpression e = (CPPASTLiteralExpression) functionCall.getArguments()[0];
-                String literal = e.getRawSignature();
-                SLStringLiteralNode expression = new SLStringLiteralNode(literal.substring(1, literal.length() - 1));
-                return printlnBuiltinFactory.createNode(new SLExpressionNode[] { expression }, CoverLanguage.INSTANCE.findContext());
-            } else if ("printf".equals(name)) {
-                List<SLExpressionNode> coverArguments = new ArrayList<>();
-                for (IASTInitializerClause x : functionCall.getArguments()) {
-                    if (x instanceof CPPASTLiteralExpression) {
-                        CPPASTLiteralExpression y = (CPPASTLiteralExpression) x;
-                        if (y.getKind() == IASTLiteralExpression.lk_string_literal) {
-                            String v = new String(y.getValue());
-                            String noQuotes = v.substring(1, v.length() - 1).replace("\\n", "\n");
-                            coverArguments.add(new SLStringLiteralNode(noQuotes));
-                        } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
-                            coverArguments.add(new SLLongLiteralNode(Integer.parseInt(new String(y.getValue()))));
-                        } else {
-                            System.err.println("Unknown argument for function call!");
-                            coverArguments.add(null);
-                        }
-                    }
-                }
-                return new CoverPrintfBuiltin(coverArguments.toArray(new SLExpressionNode[coverArguments.size()]));
-            } else {
-                // FIXME: compile time checks!
-                System.err.println("Invoking known function " + name);
-                return new SLInvokeNode(new CoverFunctionLiteralNode(name), new SLExpressionNode[0]);
-                // System.err.println("Ignoring unknown function call " + name);
-                // return new NopStatement();
-            }
+            return processFunctionCall(frameDescriptor, node);
+        } else if (node instanceof CPPASTDeclarationStatement) {
+            return processDeclaration(frameDescriptor, (CPPASTDeclarationStatement) node);
         } else {
-            System.err.println("Unknown node type: " + node.getClass().getSimpleName());
+            System.err.println("WARNING, IGNORING UNKNOWN NODE TYPE: " + node.getClass().getSimpleName());
             return new NopStatement();
         }
+    }
+
+    private static SLStatementNode processDeclaration(FrameDescriptor frameDescriptor, CPPASTDeclarationStatement node) {
+        /* -CPPASTDeclarationStatement (offset: 14,10) -> int i = 0;
+             -CPPASTSimpleDeclaration (offset: 14,10) -> int i = 0;
+               -CPPASTSimpleDeclSpecifier (offset: 14,3) -> int
+               -CPPASTDeclarator (offset: 18,5) -> i = 0
+                 -CPPASTName (offset: 18,1) -> i
+                 -CPPASTEqualsInitializer (offset: 20,3) -> = 0
+                   -CPPASTLiteralExpression (offset: 22,1) -> 0
+        */
+        CPPASTSimpleDeclaration s = (CPPASTSimpleDeclaration) node.getDeclaration();
+        // assume all variables are ints for now, single variable
+        CPPASTDeclarator d = (CPPASTDeclarator) s.getDeclarators()[0];
+        String name = d.getName().getRawSignature();
+        CPPASTEqualsInitializer i = (CPPASTEqualsInitializer) d.getInitializer();
+        CPPASTLiteralExpression literal = (CPPASTLiteralExpression) i.getInitializerClause();
+        SLExpressionNode expression = processLiteral(literal);
+        FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(name);
+
+        return SLWriteLocalVariableNodeGen.create(expression, frameSlot);
+    }
+
+    private static SLExpressionNode processLiteral(CPPASTLiteralExpression y) {
+        if (y.getKind() == IASTLiteralExpression.lk_string_literal) {
+            String v = new String(y.getValue());
+            String noQuotes = v.substring(1, v.length() - 1).replace("\\n", "\n");
+            return new SLStringLiteralNode(noQuotes);
+        } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
+            return new SLLongLiteralNode(Integer.parseInt(new String(y.getValue())));
+        } else {
+            throw new RuntimeException("Unknown argument for function call!");
+        }
+    }
+
+    private static SLStatementNode processFunctionCall(FrameDescriptor frameDescriptor, IASTNode node) {
+        CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
+        String name = functionCall.getFunctionNameExpression().getRawSignature();
+
+        if ("puts".equals(name)) {
+            NodeFactory<SLPrintlnBuiltin> printlnBuiltinFactory = SLPrintlnBuiltinFactory.getInstance();
+            CPPASTLiteralExpression e = (CPPASTLiteralExpression) functionCall.getArguments()[0];
+            String literal = e.getRawSignature();
+            SLStringLiteralNode expression = new SLStringLiteralNode(literal.substring(1, literal.length() - 1));
+            return printlnBuiltinFactory.createNode(new SLExpressionNode[] { expression }, CoverLanguage.INSTANCE.findContext());
+        } else if ("printf".equals(name)) {
+            List<SLExpressionNode> coverArguments = new ArrayList<>();
+            for (IASTInitializerClause x : functionCall.getArguments()) {
+                if (x instanceof CPPASTLiteralExpression) {
+                    coverArguments.add(processLiteral((CPPASTLiteralExpression) x));
+                } else if (x instanceof CPPASTIdExpression) {
+                    coverArguments.add(processId(frameDescriptor, (CPPASTIdExpression) x));                    
+                } else {
+                    throw new CoverParseException("Unknown function argument type: " + x.getClass());
+                }
+            }
+            return new CoverPrintfBuiltin(coverArguments.toArray(new SLExpressionNode[coverArguments.size()]));
+        } else {
+            // FIXME: compile time checks!
+            System.err.println("Invoking known function " + name);
+            return new SLInvokeNode(new CoverFunctionLiteralNode(name), new SLExpressionNode[0]);
+            // System.err.println("Ignoring unknown function call " + name);
+            // return new NopStatement();
+        }
+    }
+
+    private static SLExpressionNode processId(FrameDescriptor frameDescriptor, CPPASTIdExpression id) {
+        String name = id.getName().getRawSignature();
+        final SLExpressionNode result;
+        final FrameSlot frameSlot = frameDescriptor.findFrameSlot(name);
+        if (frameSlot != null) {
+            /* Read of a local variable. */
+            result = SLReadLocalVariableNodeGen.create(frameSlot);
+        } else {
+            throw new CoverParseException("ID not found in local scope (FIXME): " + name);
+        }
+        return result; 
+    }
+
+    private static SLExpressionNode processFunctionDefinition(FrameDescriptor frameDescriptor, IASTNode node) {
+        CPPASTFunctionDefinition functionDefintion = (CPPASTFunctionDefinition) node;
+        FrameDescriptor newFrame = new FrameDescriptor();
+        IASTStatement s = functionDefintion.getBody();
+        IASTCompoundStatement compound = (IASTCompoundStatement) s;
+        List<SLStatementNode> statements = new ArrayList<SLStatementNode>();
+        for (IASTStatement statement : compound.getStatements()) {
+            statements.add(processStatement(newFrame, statement));
+        }
+        SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
+        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(blockNode);
+        String functionName = functionDefintion.getDeclarator().getName().toString();
+        System.err.println("Function name: " + functionName);
+
+        // for int main() {} we create a main = (int)(){} assignment
+        FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(functionName);
+        SLFunction function = new SLFunction(functionName);
+        SLRootNode rootNode = new SLRootNode(newFrame, functionBodyNode, null, functionName);
+        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+        function.setCallTarget(callTarget);
+        final SLExpressionNode result = new CoverWriteLocalVariableNodeNoEval(function, frameSlot);
+        return result;
     }
 
     private static void printTree(IASTNode node, int index) {
