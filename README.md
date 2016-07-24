@@ -28,7 +28,7 @@ This repository is licensed under the permissive UPL licence.
 ## Installation
 
 * Clone the repository using
-  `git clone https://github.com/TODO`
+  `git clone https://github.com/gerard-/cover.git`
 * Download Graal VM Development Kit from 
   http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads
 * Unpack the downloaded `graalvm_*.tar.gz` into `cover/graalvm`, or add a symlink.
