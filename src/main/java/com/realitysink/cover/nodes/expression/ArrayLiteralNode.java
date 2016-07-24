@@ -38,30 +38,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.local;
+package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
-public class CoverWriteLocalVariableNodeNoEval extends SLExpressionNode {
+@NodeInfo(shortName = "const")
+public final class ArrayLiteralNode extends SLExpressionNode {
 
-    @CompilationFinal
-    Object node;
-    @CompilationFinal
-    FrameSlot frameSlot;
+    private final Object[] value;
 
-    public CoverWriteLocalVariableNodeNoEval(Object node, FrameSlot frameSlot) {
-        this.node = node;
-        this.frameSlot = frameSlot;
+    public ArrayLiteralNode(Object[] value) {
+        this.value = value;
     }
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, node);
-        return node;
+        return value;
     }
 }

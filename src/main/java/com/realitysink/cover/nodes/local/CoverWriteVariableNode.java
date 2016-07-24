@@ -40,28 +40,33 @@
  */
 package com.realitysink.cover.nodes.local;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
-public class CoverWriteLocalVariableNodeNoEval extends SLExpressionNode {
-
-    @CompilationFinal
-    Object node;
-    @CompilationFinal
-    FrameSlot frameSlot;
-
-    public CoverWriteLocalVariableNodeNoEval(Object node, FrameSlot frameSlot) {
-        this.node = node;
-        this.frameSlot = frameSlot;
+@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
+public abstract class CoverWriteVariableNode extends SLExpressionNode {
+    @Specialization
+    protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
+        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
+        try {
+            array[(int) arrayReference.getIndex()] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+            throw e;
+        }
+        return value;
     }
 
-    @Override
-    public Object executeGeneric(VirtualFrame frame) {
+    @Specialization
+    protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
         frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, node);
-        return node;
+
+        frame.setObject(frameSlot, value);
+        return value;
     }
 }

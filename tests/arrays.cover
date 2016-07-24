@@ -1,0 +1,15 @@
+#include <stdio.h>
+
+int main() {
+	int size = 20;
+	int a[size];
+	for (int i=0;i<size;i++) {
+		a[i] = size - i;
+		a[i] += 100;
+		a[i]--;
+	}
+	for (int j=0;j<size;j++) {
+		printf("a[%d]=%d\n",j, a[j]);
+	}
+	return 0;
+}

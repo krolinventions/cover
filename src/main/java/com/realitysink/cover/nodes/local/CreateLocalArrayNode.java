@@ -40,28 +40,28 @@
  */
 package com.realitysink.cover.nodes.local;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.nodes.SLStatementNode;
 
-public class CoverWriteLocalVariableNodeNoEval extends SLExpressionNode {
-
-    @CompilationFinal
-    Object node;
-    @CompilationFinal
-    FrameSlot frameSlot;
-
-    public CoverWriteLocalVariableNodeNoEval(Object node, FrameSlot frameSlot) {
-        this.node = node;
+public class CreateLocalArrayNode extends SLStatementNode {
+    private FrameSlot frameSlot;
+    @Child
+    SLExpressionNode size;
+    
+    public CreateLocalArrayNode(FrameSlot frameSlot, SLExpressionNode size) {
         this.frameSlot = frameSlot;
+        this.size = size;
     }
 
     @Override
-    public Object executeGeneric(VirtualFrame frame) {
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, node);
-        return node;
+    public void executeVoid(VirtualFrame frame) {
+        try {
+            frame.setObject(frameSlot, new Object[(int) size.executeLong(frame)]);
+        } catch (UnexpectedResultException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
