@@ -1,6 +1,9 @@
 
 int main() {
-	int i = 42;
+	int i = 41;
+	i++;
+	i--;
+	i++;
 	printf("i=%d\n", i);
 	return 0;
 }

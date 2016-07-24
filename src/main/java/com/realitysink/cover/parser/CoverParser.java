@@ -24,6 +24,8 @@ import com.realitysink.cover.nodes.call.SLInvokeNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
+import com.realitysink.cover.nodes.expression.SLAddNode;
+import com.realitysink.cover.nodes.expression.SLAddNodeGen;
 import com.realitysink.cover.nodes.expression.SLFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
@@ -42,6 +44,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPreprocessorIncludeStatement;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.cpp.GPPLanguage;
 import org.eclipse.cdt.core.parser.DefaultLogService;
 import org.eclipse.cdt.core.parser.FileContent;
@@ -60,6 +63,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTUnaryExpression;
 import org.eclipse.core.runtime.CoreException;
 
 public class CoverParser {
@@ -134,10 +138,37 @@ public class CoverParser {
             return processFunctionCall(frameDescriptor, node);
         } else if (node instanceof CPPASTDeclarationStatement) {
             return processDeclaration(frameDescriptor, (CPPASTDeclarationStatement) node);
+        } else if (node instanceof CPPASTUnaryExpression) {
+            return processUnary(frameDescriptor, (CPPASTUnaryExpression) node);
         } else {
             System.err.println("WARNING, IGNORING UNKNOWN NODE TYPE: " + node.getClass().getSimpleName());
             return new NopStatement();
         }
+    }
+
+    private static SLStatementNode processUnary(FrameDescriptor frameDescriptor, CPPASTUnaryExpression node) {
+        /*
+             -CPPASTUnaryExpression (offset: 28,3) -> i++
+               -CPPASTIdExpression (offset: 28,1) -> i
+                 -CPPASTName (offset: 28,1) -> i
+         */
+        String name = node.getOperand().getRawSignature(); // FIXME, shortcut
+        int operator = node.getOperator();
+        final int change;
+        if (operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_prefixIncr) {
+            change = 1;
+        } else if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_prefixDecr) {
+            change = -1;
+        } else {
+            throw new CoverParseException(node, "Unsupported operator type " + operator);
+        }
+        // only support ++
+        
+        // build assign(name, addnode(name, 1))
+        SLAddNode addNode = SLAddNodeGen.create(processId(frameDescriptor, (CPPASTIdExpression) node.getOperand()), new SLLongLiteralNode(change));
+        
+        FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(name);
+        return SLWriteLocalVariableNodeGen.create(addNode, frameSlot);
     }
 
     private static SLStatementNode processDeclaration(FrameDescriptor frameDescriptor, CPPASTDeclarationStatement node) {
@@ -191,7 +222,7 @@ public class CoverParser {
                 } else if (x instanceof CPPASTIdExpression) {
                     coverArguments.add(processId(frameDescriptor, (CPPASTIdExpression) x));                    
                 } else {
-                    throw new CoverParseException("Unknown function argument type: " + x.getClass());
+                    throw new CoverParseException(node, "Unknown function argument type: " + x.getClass());
                 }
             }
             return new CoverPrintfBuiltin(coverArguments.toArray(new SLExpressionNode[coverArguments.size()]));
@@ -212,7 +243,7 @@ public class CoverParser {
             /* Read of a local variable. */
             result = SLReadLocalVariableNodeGen.create(frameSlot);
         } else {
-            throw new CoverParseException("ID not found in local scope (FIXME): " + name);
+            throw new CoverParseException(id, "ID not found in local scope");
         }
         return result; 
     }
