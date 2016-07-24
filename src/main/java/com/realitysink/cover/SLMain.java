@@ -219,6 +219,7 @@ public final class SLMain {
             Throwable cause = ex.getCause();
             if (cause instanceof UnsupportedSpecializationException) {
                 out.println(formatTypeError((UnsupportedSpecializationException) cause));
+                cause.printStackTrace();
             } else if (cause instanceof SLUndefinedNameException) {
                 out.println(cause.getMessage());
                 cause.printStackTrace();

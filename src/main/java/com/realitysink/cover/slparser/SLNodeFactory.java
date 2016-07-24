@@ -164,23 +164,23 @@ public class SLNodeFactory {
     }
 
     public void finishFunction(SLStatementNode bodyNode) {
-        methodNodes.add(bodyNode);
-        final int bodyEndPos = bodyNode.getSourceSection().getCharEndIndex();
-        final SourceSection functionSrc = source.createSection(functionName, functionStartPos, bodyEndPos - functionStartPos);
-        final SLStatementNode methodBlock = finishBlock(methodNodes, functionBodyStartPos, bodyEndPos - functionBodyStartPos);
-        assert lexicalScope == null : "Wrong scoping of blocks in parser";
-
-        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(methodBlock);
-        functionBodyNode.setSourceSection(functionSrc);
-        final SLRootNode rootNode = new SLRootNode(frameDescriptor, functionBodyNode, functionSrc, functionName);
-        allFunctions.put(functionName, rootNode);
-
-        functionStartPos = 0;
-        functionName = null;
-        functionBodyStartPos = 0;
-        parameterCount = 0;
-        frameDescriptor = null;
-        lexicalScope = null;
+//        methodNodes.add(bodyNode);
+//        final int bodyEndPos = bodyNode.getSourceSection().getCharEndIndex();
+//        final SourceSection functionSrc = source.createSection(functionName, functionStartPos, bodyEndPos - functionStartPos);
+//        final SLStatementNode methodBlock = finishBlock(methodNodes, functionBodyStartPos, bodyEndPos - functionBodyStartPos);
+//        assert lexicalScope == null : "Wrong scoping of blocks in parser";
+//
+//        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(methodBlock);
+//        functionBodyNode.setSourceSection(functionSrc);
+//        final SLRootNode rootNode = new SLRootNode(frameDescriptor, functionBodyNode, functionSrc, functionName);
+//        allFunctions.put(functionName, rootNode);
+//
+//        functionStartPos = 0;
+//        functionName = null;
+//        functionBodyStartPos = 0;
+//        parameterCount = 0;
+//        frameDescriptor = null;
+//        lexicalScope = null;
     }
 
     public void startBlock() {

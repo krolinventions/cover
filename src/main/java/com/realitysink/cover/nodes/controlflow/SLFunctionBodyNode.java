@@ -40,7 +40,12 @@
  */
 package com.realitysink.cover.nodes.controlflow;
 
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.realitysink.cover.nodes.SLExpressionNode;
@@ -60,6 +65,9 @@ public final class SLFunctionBodyNode extends SLExpressionNode {
 
     /** The body of the function. */
     @Child private SLStatementNode bodyNode;
+    
+    @CompilationFinal
+    final private FrameSlot[] argumentSlots;
 
     /**
      * Profiling information, collected by the interpreter, capturing whether the function had an
@@ -69,13 +77,29 @@ public final class SLFunctionBodyNode extends SLExpressionNode {
     private final BranchProfile exceptionTaken = BranchProfile.create();
     private final BranchProfile nullTaken = BranchProfile.create();
 
-    public SLFunctionBodyNode(SLStatementNode bodyNode) {
+    public SLFunctionBodyNode(FrameSlot[] argumentSlots, SLStatementNode bodyNode) {
         this.bodyNode = bodyNode;
+        this.argumentSlots = argumentSlots;
         addRootTag();
     }
 
+    @ExplodeLoop
     @Override
     public Object executeGeneric(VirtualFrame frame) {
+        // load local variables from arguments
+        Object[] arguments = frame.getArguments();
+        CompilerAsserts.compilationConstant(arguments.length);
+        for (int i=1;i<arguments.length;i++) { // skip first argument
+//            FrameSlotKind kind = argumentSlots[i-1].getKind();
+//            if (kind == FrameSlotKind.Int) {
+//                frame.setLong(argumentSlots[i-1], (Long) arguments[i]);
+//            } else if (kind == FrameSlotKind.Long) {
+//                frame.setLong(argumentSlots[i-1], (Long) arguments[i]);
+//            } else {
+                frame.setObject(argumentSlots[i-1], arguments[i]);
+//            }
+        }
+        
         try {
             /* Execute the function body. */
             bodyNode.executeVoid(frame);
