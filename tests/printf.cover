@@ -1,0 +1,5 @@
+
+int main() {
+	printf("Hello %s!\n", "world");
+	printf("The answer to %s is: %d\n", "life, the universe and everything", 42);
+}

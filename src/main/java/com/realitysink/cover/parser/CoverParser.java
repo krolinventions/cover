@@ -14,6 +14,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.realitysink.cover.CoverLanguage;
+import com.realitysink.cover.builtins.CoverPrintfBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltinFactory;
 import com.realitysink.cover.nodes.SLExpressionNode;
@@ -24,6 +25,7 @@ import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLFunctionLiteralNode;
+import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
@@ -31,6 +33,8 @@ import com.realitysink.cover.runtime.SLFunction;
 
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPreprocessorIncludeStatement;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
@@ -143,18 +147,28 @@ public class CoverParser {
 
             if ("puts".equals(name)) {
                 NodeFactory<SLPrintlnBuiltin> printlnBuiltinFactory = SLPrintlnBuiltinFactory.getInstance();
-                // System.err.println("arguments for println");
-                // for (List<Class<?>> s : p.getNodeSignatures()) {
-                // for (Class<?> c : s) {
-                // System.err.println("  argument: " + c.getName());
-                // }
-                // }
-                System.err.println("done");
                 CPPASTLiteralExpression e = (CPPASTLiteralExpression) functionCall.getArguments()[0];
                 String literal = e.getRawSignature();
                 SLStringLiteralNode expression = new SLStringLiteralNode(literal.substring(1, literal.length() - 1));
-                return printlnBuiltinFactory.createNode(new SLExpressionNode[] { expression },
-                        CoverLanguage.INSTANCE.findContext());
+                return printlnBuiltinFactory.createNode(new SLExpressionNode[] { expression }, CoverLanguage.INSTANCE.findContext());
+            } else if ("printf".equals(name)) {
+                List<SLExpressionNode> coverArguments = new ArrayList<>();
+                for (IASTInitializerClause x : functionCall.getArguments()) {
+                    if (x instanceof CPPASTLiteralExpression) {
+                        CPPASTLiteralExpression y = (CPPASTLiteralExpression) x;
+                        if (y.getKind() == IASTLiteralExpression.lk_string_literal) {
+                            String v = new String(y.getValue());
+                            String noQuotes = v.substring(1, v.length() - 1).replace("\\n", "\n");
+                            coverArguments.add(new SLStringLiteralNode(noQuotes));
+                        } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
+                            coverArguments.add(new SLLongLiteralNode(Integer.parseInt(new String(y.getValue()))));
+                        } else {
+                            System.err.println("Unknown argument for function call!");
+                            coverArguments.add(null);
+                        }
+                    }
+                }
+                return new CoverPrintfBuiltin(coverArguments.toArray(new SLExpressionNode[coverArguments.size()]));
             } else {
                 // FIXME: compile time checks!
                 System.err.println("Invoking known function " + name);
