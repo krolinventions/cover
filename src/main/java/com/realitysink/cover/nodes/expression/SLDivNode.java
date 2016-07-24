@@ -68,6 +68,11 @@ public abstract class SLDivNode extends SLBinaryNode {
     }
 
     @Specialization
+    protected double div(double left, double right) {
+        return left / right;
+    }
+    
+    @Specialization
     @TruffleBoundary
     protected BigInteger div(BigInteger left, BigInteger right) {
         return left.divide(right);

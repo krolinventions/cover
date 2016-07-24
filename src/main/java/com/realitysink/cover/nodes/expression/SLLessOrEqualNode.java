@@ -59,6 +59,11 @@ public abstract class SLLessOrEqualNode extends SLBinaryNode {
     }
 
     @Specialization
+    protected boolean lessOrEqual(double left, double right) {
+        return left <= right;
+    }
+
+    @Specialization
     @TruffleBoundary
     protected boolean lessOrEqual(BigInteger left, BigInteger right) {
         return left.compareTo(right) <= 0;

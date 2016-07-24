@@ -83,6 +83,11 @@ public abstract class SLAddNode extends SLBinaryNode {
     protected long add(long left, long right) {
         return ExactMath.addExact(left, right);
     }
+    
+    @Specialization
+    protected double add(double left, double right) {
+        return left + right;
+    }
 
     /**
      * This is the slow path of the arbitrary-precision arithmetic. The {@link BigInteger} type of

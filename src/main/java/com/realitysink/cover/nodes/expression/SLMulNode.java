@@ -60,6 +60,11 @@ public abstract class SLMulNode extends SLBinaryNode {
     }
 
     @Specialization
+    protected double mul(double left, double right) {
+        return left * right;
+    }
+
+    @Specialization
     @TruffleBoundary
     protected BigInteger mul(BigInteger left, BigInteger right) {
         return left.multiply(right);

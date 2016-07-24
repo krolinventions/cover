@@ -60,6 +60,11 @@ public abstract class SLSubNode extends SLBinaryNode {
     }
 
     @Specialization
+    protected double sub(double left, double right) {
+        return left - right;
+    }
+
+    @Specialization
     @TruffleBoundary
     protected BigInteger sub(BigInteger left, BigInteger right) {
         return left.subtract(right);

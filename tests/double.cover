@@ -1,0 +1,9 @@
+#include <stdio.h>
+
+int main() {
+	double x = 0.1;
+	double y = 0.9;
+	double result = x + y;
+	printf("result: %f %f %f\n", result, result*2, result/2+12.3);
+	return 0;
+}

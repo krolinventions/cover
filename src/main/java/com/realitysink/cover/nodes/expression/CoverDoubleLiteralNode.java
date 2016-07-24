@@ -40,33 +40,32 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.realitysink.cover.nodes.SLExpressionNode;
 
 /**
- * This class is similar to the extensively documented {@link SLAddNode}. The only difference: the
- * specialized methods return {@code boolean} instead of the input types.
+ * Constant literal for a primitive {@code double} value. The unboxed value can be returned when the
+ * parent expects a long value and calls {@link CoverDoubleLiteralNode#executeDouble}. In the generic case,
+ * the primitive value is automatically boxed by Java.
  */
-@NodeInfo(shortName = "<")
-public abstract class SLLessThanNode extends SLBinaryNode {
+@NodeInfo(shortName = "const")
+public final class CoverDoubleLiteralNode extends SLExpressionNode {
 
-    @Specialization
-    protected boolean lessThan(long left, long right) {
-        return left < right;
+    private final double value;
+
+    public CoverDoubleLiteralNode(double value) {
+        this.value = value;
     }
 
-    @Specialization
-    protected boolean lessThan(double left, double right) {
-        return left < right;
+    @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return value;
     }
 
-    @Specialization
-    @TruffleBoundary
-    protected boolean lessThan(BigInteger left, BigInteger right) {
-        return left.compareTo(right) < 0;
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+        return value;
     }
 }

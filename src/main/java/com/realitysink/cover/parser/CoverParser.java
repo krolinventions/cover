@@ -28,6 +28,7 @@ import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
 import com.realitysink.cover.nodes.expression.ArrayLiteralNode;
+import com.realitysink.cover.nodes.expression.CoverDoubleLiteralNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLAddNode;
 import com.realitysink.cover.nodes.expression.SLAddNodeGen;
@@ -402,8 +403,10 @@ public class CoverParser {
             return new SLStringLiteralNode(noQuotes);
         } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
             return new SLLongLiteralNode(Integer.parseInt(new String(y.getValue())));
+        } else if (y.getKind() == IASTLiteralExpression.lk_float_constant) {
+            return new CoverDoubleLiteralNode(Double.parseDouble(new String(y.getValue())));
         } else {
-            throw new RuntimeException("Unknown argument for function call!");
+            throw new CoverParseException(y, "unsupported literal type: " + y.getKind());
         }
     }
 
