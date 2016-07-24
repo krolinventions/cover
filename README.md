@@ -1,6 +1,6 @@
 # Cover
 
-Cover aims to implement a superset of a subset of C++ using the Truffle framework. The goal is to be able to run parts of your existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace.
+Cover aims to implement a safe subset of C++ using the Truffle framework. The goal is to be able to run parts of your existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace. If you want full C++ support, but don't need memory safety, take a look at [Sulong](https://github.com/graalvm/sulong).
 
 This project is at a very early stage. 
 
@@ -83,6 +83,7 @@ This repository is licensed under the permissive UPL licence.
 * [Graal VM]( http://www.oracle.com/technetwork/oracle-labs/program-languages/overview) on the Oracle Technology Network
 * [Papers on Truffle](http://ssw.jku.at/Research/Projects/JVM/Truffle.html)
 * [Papers on Graal](http://ssw.jku.at/Research/Projects/JVM/Graal.html)
+* [Sulong](https://github.com/graalvm/sulong)
 
 ## License
 
