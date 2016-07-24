@@ -104,24 +104,8 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
             throw new IOException(ex);
         }
 
-        SLRootNode main = functions.get("main");
-        SLRootNode evalMain;
-        if (main != null) {
-            /*
-             * We have a main function, so "evaluating" the parsed source means invoking that main
-             * function. However, we need to lazily register functions into the SLContext first, so
-             * we cannot use the original SLRootNode for the main function. Instead, we create a new
-             * SLEvalRootNode that does everything we need.
-             */
-            evalMain = new SLEvalRootNode(main.getFrameDescriptor(), main.getBodyNode(), main.getSourceSection(), main.getName(), functions);
-        } else {
-            /*
-             * Even without a main function, "evaluating" the parsed source needs to register the
-             * functions into the SLContext.
-             */
-            evalMain = new SLEvalRootNode(null, null, null, "[no_main]", functions);
-        }
-        return Truffle.getRuntime().createCallTarget(evalMain);
+        SLRootNode main = functions.get("_file");
+        return Truffle.getRuntime().createCallTarget(main);
     }
 
     @Override

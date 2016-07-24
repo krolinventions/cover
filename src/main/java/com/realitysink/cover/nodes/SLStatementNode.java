@@ -42,6 +42,10 @@ package com.realitysink.cover.nodes;
 
 import java.io.File;
 
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.Instrumentable;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -136,4 +140,30 @@ public abstract class SLStatementNode extends Node {
         }
     }
 
+    public MaterializedFrame getParentFrame(Frame frame) {
+        // System.out.println("Looking for parent in frame " + frame);
+        Object[] arguments = frame.getArguments();
+        if (arguments.length == 0) {
+            // System.out.println("Looking for parent in frame " + frame + " - top of stack!");
+            return null; // top of stack!
+        }
+        return (MaterializedFrame) arguments[0];
+    }
+
+    protected Object walkUpStackAndFindObject(Frame frame, String functionName)
+            throws FrameSlotTypeException {
+        // System.out.println("Looking for " + functionName + " in frame " +
+        // frame);
+        FrameSlot slot = frame.getFrameDescriptor().findFrameSlot(functionName);
+        if (slot != null) {
+            return frame.getObject(slot);
+        } else {
+            MaterializedFrame parentFrame = getParentFrame(frame);
+            if (parentFrame != null) {
+                return walkUpStackAndFindObject(parentFrame, functionName);
+            } else {
+                return null;
+            }
+        }
+    }
 }

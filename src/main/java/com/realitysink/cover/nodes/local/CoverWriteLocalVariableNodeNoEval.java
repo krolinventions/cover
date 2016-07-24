@@ -38,53 +38,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.nodes.local;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.nodes.SLExpressionNode;
-import com.realitysink.cover.runtime.SLContext;
-import com.realitysink.cover.runtime.SLFunction;
-import com.realitysink.cover.runtime.SLFunctionRegistry;
 
-/**
- * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
- * a literal in SL source code. Note that function redefinition can change the {@link CallTarget
- * call target} that is executed when calling the function, but the {@link SLFunction} for a name
- * never changes. This is guaranteed by the {@link SLFunctionRegistry}.
- */
-@NodeInfo(shortName = "func")
-@Deprecated
-public final class SLFunctionLiteralNode extends SLExpressionNode {
+public class CoverWriteLocalVariableNodeNoEval extends SLExpressionNode {
 
-    /** The name of the function. */
-    private final String functionName;
+    @CompilationFinal
+    Object node;
+    @CompilationFinal
+    FrameSlot frameSlot;
 
-    /**
-     * The resolved function. During parsing (in the constructor of this node), we do not have the
-     * {@link SLContext} available yet, so the lookup can only be done at {@link #executeGeneric
-     * first execution}. The {@link CompilationFinal} annotation ensures that the function can still
-     * be constant folded during compilation.
-     */
-    @CompilationFinal private SLFunction cachedFunction;
-
-    public SLFunctionLiteralNode(String functionName) {
-        this.functionName = functionName;
+    public CoverWriteLocalVariableNodeNoEval(Object node, FrameSlot frameSlot) {
+        this.node = node;
+        this.frameSlot = frameSlot;
     }
 
     @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        if (cachedFunction == null) {
-            /* We are about to change a @CompilationFinal field. */
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            /* First execution of the node: lookup the function in the function registry. */
-            SLContext context = CoverLanguage.INSTANCE.findContext();
-            cachedFunction = context.getFunctionRegistry().lookup(functionName, true);
-        }
-        return cachedFunction;
+    public Object executeGeneric(VirtualFrame frame) {
+        // System.out.println("setting " + frameSlot.getIdentifier() + " to " +
+        // node);
+        frameSlot.setKind(FrameSlotKind.Object);
+        frame.setObject(frameSlot, node);
+        return node;
     }
 }

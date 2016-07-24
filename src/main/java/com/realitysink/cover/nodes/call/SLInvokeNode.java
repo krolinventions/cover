@@ -41,6 +41,7 @@
 package com.realitysink.cover.nodes.call;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -82,9 +83,11 @@ public final class SLInvokeNode extends SLExpressionNode {
          */
         CompilerAsserts.compilationConstant(argumentNodes.length);
 
-        Object[] argumentValues = new Object[argumentNodes.length];
+        Object[] argumentValues = new Object[argumentNodes.length + 1];
+        MaterializedFrame materializedFrame = frame.materialize();
+        argumentValues[0] = materializedFrame;
         for (int i = 0; i < argumentNodes.length; i++) {
-            argumentValues[i] = argumentNodes[i].executeGeneric(frame);
+            argumentValues[i+1] = argumentNodes[i].executeGeneric(frame);
         }
         return dispatchNode.executeDispatch(frame, function, argumentValues);
     }

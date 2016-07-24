@@ -43,6 +43,8 @@ package com.realitysink.cover.nodes.expression;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.CoverLanguage;
@@ -58,11 +60,10 @@ import com.realitysink.cover.runtime.SLFunctionRegistry;
  * never changes. This is guaranteed by the {@link SLFunctionRegistry}.
  */
 @NodeInfo(shortName = "func")
-@Deprecated
-public final class SLFunctionLiteralNode extends SLExpressionNode {
+public final class CoverFunctionLiteralNode extends SLExpressionNode {
 
     /** The name of the function. */
-    private final String functionName;
+    public final String functionName;
 
     /**
      * The resolved function. During parsing (in the constructor of this node), we do not have the
@@ -72,7 +73,7 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
      */
     @CompilationFinal private SLFunction cachedFunction;
 
-    public SLFunctionLiteralNode(String functionName) {
+    public CoverFunctionLiteralNode(String functionName) {
         this.functionName = functionName;
     }
 
@@ -81,9 +82,17 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
         if (cachedFunction == null) {
             /* We are about to change a @CompilationFinal field. */
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            /* First execution of the node: lookup the function in the function registry. */
-            SLContext context = CoverLanguage.INSTANCE.findContext();
-            cachedFunction = context.getFunctionRegistry().lookup(functionName, true);
+            try {
+                cachedFunction = (SLFunction) walkUpStackAndFindObject(frame, functionName);
+            } catch (FrameSlotTypeException e) {
+                throw new RuntimeException(e);
+            }
+            if (cachedFunction == null) {
+                System.out.println("null function for literal " + functionName + "!");
+                throw new RuntimeException("null function literal!");
+            } else {
+                // System.out.println("frame "+frame.toString() + " found literal for " + functionName);
+            }
         }
         return cachedFunction;
     }

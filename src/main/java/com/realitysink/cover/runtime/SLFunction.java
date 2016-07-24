@@ -81,7 +81,7 @@ public final class SLFunction implements TruffleObject {
      */
     private final CyclicAssumption callTargetStable;
 
-    protected SLFunction(String name) {
+    public SLFunction(String name) {
         this.name = name;
         this.callTarget = Truffle.getRuntime().createCallTarget(new SLUndefinedFunctionRootNode(name));
         this.callTargetStable = new CyclicAssumption(name);
@@ -91,7 +91,7 @@ public final class SLFunction implements TruffleObject {
         return name;
     }
 
-    protected void setCallTarget(RootCallTarget callTarget) {
+    public void setCallTarget(RootCallTarget callTarget) {
         this.callTarget = callTarget;
         /*
          * We have a new call target. Invalidate all code that speculated that the old call target

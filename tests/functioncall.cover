@@ -1,0 +1,11 @@
+
+void sub() {
+	puts("hello from sub");
+}
+
+int main() {
+	puts("entering main");
+	sub();
+	puts("exiting main");
+	return 0;
+}

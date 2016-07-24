@@ -221,6 +221,7 @@ public final class SLMain {
                 out.println(formatTypeError((UnsupportedSpecializationException) cause));
             } else if (cause instanceof SLUndefinedNameException) {
                 out.println(cause.getMessage());
+                cause.printStackTrace();
             } else {
                 /* Unexpected error, just print out the full stack trace for debugging purposes. */
                 ex.printStackTrace(out);
