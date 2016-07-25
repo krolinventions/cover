@@ -4,6 +4,12 @@ Cover is a safe subset of C++ on the JVM using Graal/Truffle. With Cover you can
 
 This project is at a very early stage. 
 
+Cover is licensed under the UPL licence.
+
+## Benchmarks
+
+How fast is it? Currently: about as fast as PHP. On the [mandelbrot](http://benchmarksgame.alioth.debian.org/u64q/performance.php?test=mandelbrot) benchmark it scores 152 seconds. The fastest program (Swift, 4 cores) runs the benchmark in 4.5 seconds. We need to get Cover 33x times as fast!
+
 ## Design
 
 Cover aims to support the following C++ features:
@@ -18,8 +24,6 @@ Does NOT support the following C++ features:
 * delete: everything is garbage collected
 * pointer arithmetic and casting to incompatible types
 * exceptions
-
-This repository is licensed under the permissive UPL licence.
 
 ## Prerequisites
 * JDK 8
