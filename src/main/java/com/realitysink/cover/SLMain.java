@@ -197,7 +197,10 @@ public final class SLMain {
     }
 
     private static void executeSource(Source source, InputStream in, PrintStream out) {
-        out.println("== running on " + Truffle.getRuntime().getName());
+        String runtime = Truffle.getRuntime().getName();
+        if (!"Graal Truffle Runtime".equals(runtime)) {
+            System.err.println("WARNING: not running on Graal/Truffle but on " + runtime);
+        }
 
         PolyglotEngine engine = PolyglotEngine.newBuilder().setIn(in).setOut(out).build();
         assert engine.getLanguages().containsKey(CoverLanguage.MIME_TYPE);

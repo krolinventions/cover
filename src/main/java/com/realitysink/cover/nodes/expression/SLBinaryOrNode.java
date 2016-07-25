@@ -45,18 +45,18 @@ import java.math.BigInteger;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLUnaryNode;
+import com.realitysink.cover.nodes.SLBinaryNode;
 
-@NodeInfo(shortName = "~")
-public abstract class SLBinaryNotNode extends SLUnaryNode {
+@NodeInfo(shortName = "|")
+public abstract class SLBinaryOrNode extends SLBinaryNode {
     @Specialization
-    protected long and(long value) {
-        return ~value;
+    protected long and(long left, long right) {
+        return left | right;
     }
     
     @Specialization
     @TruffleBoundary
-    protected BigInteger and(BigInteger value) {
-        return value.not();
+    protected BigInteger and(BigInteger left, BigInteger right) {
+        return left.or(right);
     }
 }

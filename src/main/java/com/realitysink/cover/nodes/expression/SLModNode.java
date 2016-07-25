@@ -38,37 +38,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.builtins;
+package com.realitysink.cover.nodes.expression;
+
+import java.math.BigInteger;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.nodes.SLBinaryNode;
 
-@NodeInfo(shortName = "putch")
-public class CoverPutchBuiltin extends SLExpressionNode {
-    @Child
-    private SLExpressionNode argument;
+@NodeInfo(shortName = "%")
+public abstract class SLModNode extends SLBinaryNode {
 
-    public CoverPutchBuiltin(SLExpressionNode argument) {
-        this.argument = argument;
+    @Specialization(rewriteOn = ArithmeticException.class)
+    protected long div(long left, long right) throws ArithmeticException {
+        return left % right;
     }
 
-    @ExplodeLoop
-    @Override
-    public Object executeGeneric(VirtualFrame frame) {
-        try {
-            doPutch(argument.executeLong(frame));
-        } catch (UnexpectedResultException e) {
-            throw new RuntimeException(e);
-        }
-        return null; // is actually a void function
+    @Specialization
+    protected double div(double left, double right) {
+        return left % right;
     }
-
+    
+    @Specialization
     @TruffleBoundary
-    private static void doPutch(long c) {
-        System.out.write((byte)c);
+    protected BigInteger div(BigInteger left, BigInteger right) {
+        return left.mod(right);
     }
 }

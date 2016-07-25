@@ -1,0 +1,6 @@
+int main() {
+	int x = 0xF;
+	x &= ~0x8;
+	printf("%d", x);
+	return 0;
+}

@@ -38,25 +38,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.builtins;
 
-import java.math.BigInteger;
+import java.io.IOException;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLUnaryNode;
+import com.realitysink.cover.nodes.SLExpressionNode;
 
-@NodeInfo(shortName = "~")
-public abstract class SLBinaryNotNode extends SLUnaryNode {
+@NodeInfo(shortName = "putch")
+@NodeChildren({@NodeChild("argument"), @NodeChild("file")})
+public abstract class CoverPutcBuiltin extends SLExpressionNode {
+
     @Specialization
-    protected long and(long value) {
-        return ~value;
+    public long putch(long c, long file) {
+        doPutch((byte)c);
+        return c;
     }
-    
-    @Specialization
+
     @TruffleBoundary
-    protected BigInteger and(BigInteger value) {
-        return value.not();
+    private static void doPutch(byte c) {
+        // write(c) is broken? It sometimes silently does NOT write a byte. This workaround does.
+        byte[] array = {c};
+        try {
+            System.out.write(array);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

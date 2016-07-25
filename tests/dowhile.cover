@@ -7,7 +7,8 @@ int main() {
 	    uint8_t current_Pixel_Bitmask=0x80;
 	    for(intnative_t x_Minor=0; x_Minor<8; x_Minor++){
 	       current_Pixel_Bitmask>>=1;
-	       printf("x_Minor: %d, current bitmask: %d\n", x_Minor, current_Pixel_Bitmask);
+	       eight_Pixels &= ~current_Pixel_Bitmask;
+	       printf("eight_Pixels: %d, x_Minor: %d, current bitmask: %d\n", eight_Pixels, x_Minor, current_Pixel_Bitmask);
 	    }
 	    printf("eight_Pixels: %d, iteration: %d\n", eight_Pixels, iteration);
 	 } while(eight_Pixels && --iteration);
