@@ -99,8 +99,12 @@ public abstract class SLTypes {
     }
     
     @ImplicitCast
-    @TruffleBoundary
     public static double castDouble(long value) {
         return value;
-    }    
+    }
+
+    @ImplicitCast
+    public static boolean castBoolean(long value) {
+        return value != 0;
+    }
 }

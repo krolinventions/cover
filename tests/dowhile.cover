@@ -1,0 +1,15 @@
+int main() {
+	 // Assume all pixels are in the Mandelbrot set initially.
+	 uint8_t eight_Pixels=0xff;
+	
+	 intnative_t iteration=5;
+	 do{
+	    uint8_t current_Pixel_Bitmask=0x80;
+	    for(intnative_t x_Minor=0; x_Minor<8; x_Minor++){
+	       current_Pixel_Bitmask>>=1;
+	       printf("x_Minor: %d, current bitmask: %d\n", x_Minor, current_Pixel_Bitmask);
+	    }
+	    printf("eight_Pixels: %d, iteration: %d\n", eight_Pixels, iteration);
+	 } while(eight_Pixels && --iteration);
+	 return 0;
+}

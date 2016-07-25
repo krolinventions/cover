@@ -38,34 +38,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.local;
+package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
+import java.math.BigInteger;
+
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.realitysink.cover.nodes.SLExpressionNode;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.SLUnaryNode;
 
-@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
-public abstract class CoverWriteVariableNode extends SLExpressionNode {
+@NodeInfo(shortName = "&")
+public abstract class SLBinaryNotNode extends SLUnaryNode {
     @Specialization
-    protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
-        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
-        try {
-            array[(int) arrayReference.getIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
-            throw e;
-        }
-        return value;
+    protected long and(long value) {
+        return ~value;
     }
-
+    
     @Specialization
-    protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, value);
-        return value;
+    @TruffleBoundary
+    protected BigInteger and(BigInteger value) {
+        return value.not();
     }
 }

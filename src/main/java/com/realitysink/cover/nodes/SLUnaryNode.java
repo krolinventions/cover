@@ -38,34 +38,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.local;
+package com.realitysink.cover.nodes;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.realitysink.cover.nodes.SLExpressionNode;
 
-@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
-public abstract class CoverWriteVariableNode extends SLExpressionNode {
-    @Specialization
-    protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
-        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
-        try {
-            array[(int) arrayReference.getIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
-            throw e;
-        }
-        return value;
-    }
-
-    @Specialization
-    protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, value);
-        return value;
-    }
+/**
+ * Utility base class for operations that take two arguments (per convention called "left" and
+ * "right"). For concrete subclasses of this class, the Truffle DSL creates two child fields, and
+ * the necessary constructors and logic to set them.
+ */
+@NodeChildren({@NodeChild("node")})
+public abstract class SLUnaryNode extends SLExpressionNode {
 }

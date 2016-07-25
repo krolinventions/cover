@@ -15,6 +15,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.builtins.CoverPrintfBuiltin;
+import com.realitysink.cover.builtins.CoverPutchBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltinFactory;
 import com.realitysink.cover.local.ArrayReferenceLiteralNode;
@@ -25,6 +26,7 @@ import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
+import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
 import com.realitysink.cover.nodes.expression.ArrayLiteralNode;
@@ -32,9 +34,14 @@ import com.realitysink.cover.nodes.expression.CoverDoubleLiteralNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
 import com.realitysink.cover.nodes.expression.SLAddNode;
 import com.realitysink.cover.nodes.expression.SLAddNodeGen;
+import com.realitysink.cover.nodes.expression.SLBinaryAndNodeGen;
+import com.realitysink.cover.nodes.expression.SLBinaryNotNodeGen;
+import com.realitysink.cover.nodes.expression.SLBinaryShiftRightNodeGen;
 import com.realitysink.cover.nodes.expression.SLDivNodeGen;
 import com.realitysink.cover.nodes.expression.SLEqualNodeGen;
+import com.realitysink.cover.nodes.expression.SLForceBooleanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
+import com.realitysink.cover.nodes.expression.SLLogicalAndNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
@@ -83,6 +90,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionCallExpression
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIfStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTReturnStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
@@ -166,14 +174,26 @@ public class CoverParser {
             return processBinaryExpression(frameDescriptor, (CPPASTBinaryExpression) node);
         } else if (node instanceof CPPASTForStatement) {
             return processForStatement(frameDescriptor, (CPPASTForStatement) node);
+        } else if (node instanceof CPPASTIfStatement) {
+            return processIfStatement(frameDescriptor, (CPPASTIfStatement) node);
         } else {
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
         }
     }
 
+    private static SLStatementNode processIfStatement(FrameDescriptor frameDescriptor, CPPASTIfStatement node) {
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(SLForceBooleanNodeGen.create(processExpression(frameDescriptor, node.getConditionExpression())));
+        SLStatementNode thenPartNode = processStatement(frameDescriptor, node.getThenClause());
+        SLStatementNode elsePartNode = null;
+        if (node.getElseClause() != null) {
+            elsePartNode = processStatement(frameDescriptor, node.getElseClause());
+        }
+        return new SLIfNode(conditionNode, thenPartNode, elsePartNode);
+    }
+
     private static SLStatementNode processDo(FrameDescriptor frameDescriptor, CPPASTDoStatement node) {
         // a do {} while() loop is just a while loop with the body prepended
-        SLExpressionNode conditionNode = processExpression(frameDescriptor, node.getCondition());
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(frameDescriptor, node.getCondition()));
         SLStatementNode bodyNode = processStatement(frameDescriptor, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
         SLBlockNode blockNode = new SLBlockNode(new SLStatementNode[]{bodyNode, whileNode});
@@ -246,7 +266,7 @@ public class CoverParser {
            -CPPASTLiteralExpression (offset: 38,2) -> 10
          -CPPASTCompoundStatement (offset: 42,32) -> {
          */
-        SLExpressionNode conditionNode = processExpression(frameDescriptor, node.getCondition());
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(frameDescriptor, node.getCondition()));
         SLStatementNode bodyNode = processStatement(frameDescriptor, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
         return whileNode;
@@ -291,7 +311,7 @@ public class CoverParser {
             // FIXME: this messes with evaluation order!
             SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
             SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
-            return SLEqualNodeGen.create(rightNode, leftNode);
+            return SLLessThanNodeGen.create(rightNode, leftNode);
         } else if (operator == CPPASTBinaryExpression.op_plusAssign) {
             SLExpressionNode destination = processExpressionAsDestination(frameDescriptor, expression.getOperand1());
             SLExpressionNode change = processExpression(frameDescriptor, expression.getOperand2());
@@ -317,6 +337,20 @@ public class CoverParser {
             SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
             SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
             return SLSubNodeGen.create(leftNode, rightNode);
+        } else if (operator == CPPASTBinaryExpression.op_logicalAnd) {
+            SLExpressionNode leftNode = processExpression(frameDescriptor, expression.getOperand1());
+            SLExpressionNode rightNode = processExpression(frameDescriptor, expression.getOperand2());
+            return SLLogicalAndNodeGen.create(leftNode, rightNode);
+        } else if (operator == CPPASTBinaryExpression.op_binaryAndAssign) {
+            SLExpressionNode destination = processExpressionAsDestination(frameDescriptor, expression.getOperand1());
+            SLExpressionNode change = processExpression(frameDescriptor, expression.getOperand2());
+            SLExpressionNode source = processExpression(frameDescriptor, expression.getOperand1());
+            return CoverWriteVariableNodeGen.create(destination, SLBinaryAndNodeGen.create(source, change));
+        } else if (operator == CPPASTBinaryExpression.op_shiftRightAssign) {
+            SLExpressionNode destination = processExpressionAsDestination(frameDescriptor, expression.getOperand1());
+            SLExpressionNode change = processExpression(frameDescriptor, expression.getOperand2());
+            SLExpressionNode source = processExpression(frameDescriptor, expression.getOperand1());
+            return CoverWriteVariableNodeGen.create(destination, SLBinaryShiftRightNodeGen.create(source, change));
         } 
         throw new CoverParseException(expression, "unknown operator type " + operator);
     }
@@ -341,12 +375,6 @@ public class CoverParser {
     }
 
     private static SLStatementNode processUnary(FrameDescriptor frameDescriptor, CPPASTUnaryExpression node) {
-        /*
-             -CPPASTUnaryExpression (offset: 28,3) -> i++
-               -CPPASTIdExpression (offset: 28,1) -> i
-                 -CPPASTName (offset: 28,1) -> i
-         */
-        String name = node.getOperand().getRawSignature(); // FIXME, shortcut
         int operator = node.getOperator();
         final int change;
         if (operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_prefixIncr) {
@@ -355,6 +383,8 @@ public class CoverParser {
             change = -1;
         } else if (operator == IASTUnaryExpression.op_bracketedPrimary) {
             return processExpression(frameDescriptor, node.getOperand());
+        } else if (operator == IASTUnaryExpression.op_tilde) {
+            return SLBinaryNotNodeGen.create(processExpression(frameDescriptor, node.getOperand()));
         } else {
             throw new CoverParseException(node, "Unsupported operator type " + operator);
         }
@@ -389,7 +419,7 @@ public class CoverParser {
             IASTDeclarator declarator = declarators[i];
             declarator.getName();
             String name = declarator.getName().getRawSignature();
-            FrameSlot frameSlot = frameDescriptor.addFrameSlot(name);
+            FrameSlot frameSlot = frameDescriptor.findOrAddFrameSlot(name); // FIXME: should be addFrameSlot!
             
             if (declarator instanceof CPPASTArrayDeclarator) {
                 // we don't support initializers yet, so keep it empty
@@ -448,6 +478,8 @@ public class CoverParser {
             return printlnBuiltinFactory.createNode(argumentArray, CoverLanguage.INSTANCE.findContext());
         } else if ("printf".equals(name)) {
             return new CoverPrintfBuiltin(argumentArray);
+        } else if ("putch".equals(name)) {
+            return new CoverPutchBuiltin(argumentArray[0]);
         } else {
             return new SLInvokeNode(new CoverFunctionLiteralNode(name), argumentArray);
         }
@@ -551,7 +583,7 @@ public class CoverParser {
             offset = "UnsupportedOperationException";
         }
 
-        System.out.println(String.format(new StringBuilder("%1$").append(index * 2).append("s").toString(),
+        System.err.println(String.format(new StringBuilder("%1$").append(index * 2).append("s").toString(),
                 new Object[] { "-" })
                 + node.getClass().getSimpleName()
                 + offset

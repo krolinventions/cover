@@ -71,6 +71,7 @@ public class CoverPrintfBuiltin extends SLExpressionNode {
 
     @TruffleBoundary
     private static void doPrintf(String formatString, Object[] printfArguments) {
-        System.out.format(formatString,printfArguments);
+        String fixed = formatString.replace("%jd", "%d");
+        System.out.format(fixed,printfArguments);
     }
 }

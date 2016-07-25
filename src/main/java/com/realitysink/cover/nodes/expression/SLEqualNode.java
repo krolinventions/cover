@@ -68,6 +68,12 @@ public abstract class SLEqualNode extends SLBinaryNode {
     }
 
     @Specialization
+    protected boolean equal(double left, double right) {
+        throw new RuntimeException("Really? Are you comparing doubles using == ?");
+        // return left == right;
+    }
+    
+    @Specialization
     @TruffleBoundary
     protected boolean equal(BigInteger left, BigInteger right) {
         return left.equals(right);

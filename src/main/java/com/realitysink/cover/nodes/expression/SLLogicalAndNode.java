@@ -59,26 +59,31 @@ import com.realitysink.cover.nodes.SLBinaryNode;
 @SuppressWarnings("unused")
 public abstract class SLLogicalAndNode extends SLBinaryNode {
 
-    /**
-     * This method is called after the left child was evaluated, but before the right child is
-     * evaluated. The right child is only evaluated when the return value is {code true}.
-     */
-    @ShortCircuit("rightNode")
-    protected boolean needsRightNode(boolean left) {
-        return left;
-    }
-
-    /**
-     * Similar to {@link #needsRightNode(boolean)}, but for generic cases where the type of the left
-     * child is not known.
-     */
-    @ShortCircuit("rightNode")
-    protected boolean needsRightNode(Object left) {
-        return left instanceof Boolean && needsRightNode(((Boolean) left).booleanValue());
-    }
-
+//    /**
+//     * This method is called after the left child was evaluated, but before the right child is
+//     * evaluated. The right child is only evaluated when the return value is {code true}.
+//     */
+//    @ShortCircuit("rightNode")
+//    protected boolean needsRightNode(boolean left) {
+//        return left;
+//    }
+//
+//    /**
+//     * Similar to {@link #needsRightNode(boolean)}, but for generic cases where the type of the left
+//     * child is not known.
+//     */
+//    @ShortCircuit("rightNode")
+//    protected boolean needsRightNode(Object left) {
+//        return left instanceof Boolean && needsRightNode(((Boolean) left).booleanValue());
+//    }
+//
+//    @Specialization
+//    protected boolean doBoolean(boolean left, boolean hasRight, boolean right) {
+//        return left && right;
+//    }
+    
     @Specialization
-    protected boolean doBoolean(boolean left, boolean hasRight, boolean right) {
+    protected boolean doBoolean(boolean left, boolean right) { // FIXME: we evaluate them all!
         return left && right;
     }
 }

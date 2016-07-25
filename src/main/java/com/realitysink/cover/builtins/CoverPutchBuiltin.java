@@ -38,34 +38,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.local;
+package com.realitysink.cover.builtins;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
-@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
-public abstract class CoverWriteVariableNode extends SLExpressionNode {
-    @Specialization
-    protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
-        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
-        try {
-            array[(int) arrayReference.getIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
-            throw e;
-        }
-        return value;
+@NodeInfo(shortName = "putch")
+public class CoverPutchBuiltin extends SLExpressionNode {
+    @Child
+    private SLExpressionNode argument;
+
+    public CoverPutchBuiltin(SLExpressionNode argument) {
+        this.argument = argument;
     }
 
-    @Specialization
-    protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, value);
-        return value;
+    @ExplodeLoop
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+        try {
+            doPutch(argument.executeLong(frame));
+        } catch (UnexpectedResultException e) {
+            throw new RuntimeException(e);
+        }
+        return null; // is actually a void function
+    }
+
+    @TruffleBoundary
+    private static void doPutch(long c) {
+        System.out.write((byte)c);
     }
 }
