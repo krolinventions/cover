@@ -46,6 +46,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 import com.realitysink.cover.runtime.SLFunction;
 import com.realitysink.cover.runtime.SLNull;
 
@@ -69,8 +70,9 @@ public abstract class SLEqualNode extends SLBinaryNode {
 
     @Specialization
     protected boolean equal(double left, double right) {
-        throw new RuntimeException("Really? Are you comparing doubles using == ?");
-        // return left == right;
+        // FIXME: warn if these are not whole numbers!
+        // throw new CoverRuntimeException(this, "Really? Are you comparing doubles using == ?");
+        return left == right;
     }
     
     @Specialization

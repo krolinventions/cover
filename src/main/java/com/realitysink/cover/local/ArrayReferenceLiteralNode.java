@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.local.ArrayReference;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
 public class ArrayReferenceLiteralNode extends SLExpressionNode {
     @Child
@@ -22,7 +23,7 @@ public class ArrayReferenceLiteralNode extends SLExpressionNode {
         try {
             return new ArrayReference(frameSlot, index.executeLong(frame));
         } catch (UnexpectedResultException e) {
-            throw new RuntimeException(e);
+            throw new CoverRuntimeException(this, e);
         }
     }
 }

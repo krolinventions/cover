@@ -48,6 +48,7 @@ import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
 /**
  * size_t fwrite ( const void * ptr, size_t size, size_t count, FILE * stream );
@@ -75,7 +76,7 @@ public abstract class CoverFWriteBuiltin extends SLExpressionNode {
         try {
             System.out.write(bytes);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CoverRuntimeException(this, e);
         }
     }
 }

@@ -48,6 +48,7 @@ import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
 @NodeInfo(shortName = "putch")
 @NodeChildren({@NodeChild("argument"), @NodeChild("file")})
@@ -60,13 +61,13 @@ public abstract class CoverPutcBuiltin extends SLExpressionNode {
     }
 
     @TruffleBoundary
-    private static void doPutch(byte c) {
+    private void doPutch(byte c) {
         // write(c) is broken? It sometimes silently does NOT write a byte. This workaround does.
         byte[] array = {c};
         try {
             System.out.write(array);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CoverRuntimeException(this, e);
         }
     }
 }

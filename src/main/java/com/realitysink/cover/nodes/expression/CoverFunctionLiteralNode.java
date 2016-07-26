@@ -49,6 +49,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.CoverLanguage;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
 import com.realitysink.cover.runtime.SLFunctionRegistry;
@@ -85,11 +86,11 @@ public final class CoverFunctionLiteralNode extends SLExpressionNode {
             try {
                 cachedFunction = (SLFunction) walkUpStackAndFindObject(frame, functionName);
             } catch (FrameSlotTypeException e) {
-                throw new RuntimeException(e);
+                throw new CoverRuntimeException(this, e);
             }
             if (cachedFunction == null) {
                 System.out.println("null function for literal " + functionName + "!");
-                throw new RuntimeException("null function literal!");
+                throw new CoverRuntimeException(this, "null function literal!");
             } else {
                 // System.out.println("frame "+frame.toString() + " found literal for " + functionName);
             }

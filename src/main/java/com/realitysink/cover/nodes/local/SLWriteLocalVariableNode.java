@@ -52,9 +52,12 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 /**
  * Node to write a local variable to a function's {@link VirtualFrame frame}. The Truffle frame API
  * allows to store primitive values of all Java primitive types, and Object values.
+ * 
+ * Note: use CoverWriteLocalVariableNode!
  */
 @NodeChild("valueNode")
 @NodeField(name = "slot", type = FrameSlot.class)
+@Deprecated
 public abstract class SLWriteLocalVariableNode extends SLExpressionNode {
 
     /**

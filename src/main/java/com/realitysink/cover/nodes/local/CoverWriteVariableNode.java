@@ -46,21 +46,48 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
 @NodeChildren({@NodeChild("destination"), @NodeChild("value")})
+@NodeInfo(shortName="=")
 public abstract class CoverWriteVariableNode extends SLExpressionNode {
-    @Specialization
-    protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
-        arrayReference.getFrameSlot().setKind(FrameSlotKind.Object);
+    @Specialization(guards="frameSlotIsObject(arrayReference)")
+    protected Object writeLong(VirtualFrame frame, ArrayReference arrayReference, long value) {
         Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
         try {
             array[(int) arrayReference.getIndex()] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
-            throw e;
+            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
         }
         return value;
+    }
+    
+    @Specialization(guards="frameSlotIsObject(arrayReference)")
+    protected Object writeDouble(VirtualFrame frame, ArrayReference arrayReference, double value) {
+        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
+        try {
+            array[(int) arrayReference.getIndex()] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+        }
+        return value;
+    }
+
+    @Specialization(guards="frameSlotIsObject(arrayReference)")
+    protected Object writeObject(VirtualFrame frame, ArrayReference arrayReference, Object value) {
+        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
+        try {
+            array[(int) arrayReference.getIndex()] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+        }
+        return value;
+    }
+    
+    protected boolean frameSlotIsObject(ArrayReference arrayReference) {
+        return isObjectOrIllegal(arrayReference.getFrameSlot());
     }
 
     @Specialization(guards = "isLongOrIllegal(frameSlot)")
@@ -72,23 +99,36 @@ public abstract class CoverWriteVariableNode extends SLExpressionNode {
 
     @Specialization(guards = "isDoubleOrIllegal(frameSlot)")
     protected double writeDouble(VirtualFrame frame, FrameSlot frameSlot, double value) {
+        //System.err.println("setting " + frameSlot.getIdentifier() + " to double " + value);
         frameSlot.setKind(FrameSlotKind.Double);
         frame.setDouble(frameSlot, value);
         return value;
     }
 
-    //@Specialization(contains = {"writeLong", "writeDouble"})
-    @Specialization
+    @Specialization(contains = {"writeLong", "writeDouble"},
+            guards = {"isObjectOrIllegal(frameSlot)", "isNotBoxed(value)"})
     protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
+        //System.err.println("setting " + frameSlot.getIdentifier() + " to object " + value);
         frameSlot.setKind(FrameSlotKind.Object);
         frame.setObject(frameSlot, value);
         return value;
     }
     
     protected boolean isLongOrIllegal(FrameSlot frameSlot) {
+        //System.err.println("isLongOrIllegal:"+ frameSlot.getIdentifier() + " has type " + frameSlot.getKind());
         return frameSlot.getKind() == FrameSlotKind.Long || frameSlot.getKind() == FrameSlotKind.Illegal;
     }    
     protected boolean isDoubleOrIllegal(FrameSlot frameSlot) {
+        //System.err.println("isDoubleOrIllegal:"+ frameSlot.getIdentifier() + " has type " + frameSlot.getKind());
         return frameSlot.getKind() == FrameSlotKind.Double || frameSlot.getKind() == FrameSlotKind.Illegal;
     }    
+    protected boolean isObjectOrIllegal(FrameSlot frameSlot) {
+        //System.err.println("isObjectOrIllegal:"+ frameSlot.getIdentifier() + " has type " + frameSlot.getKind());
+        return frameSlot.getKind() == FrameSlotKind.Object || frameSlot.getKind() == FrameSlotKind.Illegal;
+    }    
+    protected boolean isNotBoxed(Object value) {
+        if (value instanceof Long) return false;
+        if (value instanceof Double) return false;
+        return true;
+    }
 }

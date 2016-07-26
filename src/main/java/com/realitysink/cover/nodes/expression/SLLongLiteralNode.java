@@ -65,6 +65,11 @@ public final class SLLongLiteralNode extends SLExpressionNode {
     }
 
     @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return value;
+    }
+
+    @Override
     public Object executeGeneric(VirtualFrame frame) {
         return value;
     }

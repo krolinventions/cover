@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
 public class CoverReadArrayValueNode extends SLExpressionNode {
 
@@ -20,15 +21,21 @@ public class CoverReadArrayValueNode extends SLExpressionNode {
     @Override
     public Object executeGeneric(VirtualFrame frame) {
         Object[] array;
+        Object object;
         try {
-            array = (Object[]) frame.getObject(frameSlot);
+            object = frame.getObject(frameSlot);
         } catch (FrameSlotTypeException e1) {
-            throw new RuntimeException(e1);
+            throw new CoverRuntimeException(this, e1);
+        }
+        try {
+            array = (Object[]) object;
+        } catch (ClassCastException e1) {
+            throw new CoverRuntimeException(this, e1);
         }
         try {
             return array[(int) expressionNode.executeLong(frame)];
         } catch (UnexpectedResultException e) {
-            throw new RuntimeException(e);
+            throw new CoverRuntimeException(this, e);
         }
     }
 }
