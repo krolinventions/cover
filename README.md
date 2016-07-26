@@ -2,13 +2,12 @@
 
 Cover is a safe subset of C++ on the JVM using Graal/Truffle. With Cover you can run existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace. If you want full C++ support, but don't need memory safety, take a look at [Sulong](https://github.com/graalvm/sulong).
 
-This project is at a very early stage. 
+Cover is licensed under the UPL licence. 
 
-Cover is licensed under the UPL licence.
+## FAQ
 
-## Performance
-
-How fast is it? For some programs it runs at 50% of the speed of C, for others it is as slow as PHP. See (Performance)[PERFORMANCE.md] for details.
+* *How fast is it?* For some programs it runs at 50% of the speed of C, for others it is as slow as PHP. See [Performance](PERFORMANCE.md) for details.
+* *Can I use this for real world projects?* No, as only just the parts of C needed to run some toy programs have been implemented. 
 
 ## Design
 
