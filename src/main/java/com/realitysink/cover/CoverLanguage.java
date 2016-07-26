@@ -95,7 +95,8 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
              * Parse the provided source. At this point, we do not have a SLContext yet.
              * Registration of the functions with the SLContext happens lazily in SLEvalRootNode.
              */
-            functions = CoverParser.parseSource(source);
+            CoverParser parser = new CoverParser(source);
+            functions = parser.parse();
         } catch (Throwable ex) {
             /*
              * The specification says that exceptions during parsing have to wrapped with an

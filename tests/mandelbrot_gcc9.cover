@@ -24,7 +24,7 @@ typedef intptr_t intnative_t;
 #endif
 
 int main(int argc, char ** argv){
-   int argv_1 = 160;
+   int argv_1 = 16000;
 #ifndef __GNUC__
    int stdout = 0;
 #endif

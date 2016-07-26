@@ -52,6 +52,7 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 public abstract class CoverWriteVariableNode extends SLExpressionNode {
     @Specialization
     protected Object write(VirtualFrame frame, ArrayReference arrayReference, Object value) {
+        arrayReference.getFrameSlot().setKind(FrameSlotKind.Object);
         Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
         try {
             array[(int) arrayReference.getIndex()] = value;
@@ -62,10 +63,32 @@ public abstract class CoverWriteVariableNode extends SLExpressionNode {
         return value;
     }
 
+    @Specialization(guards = "isLongOrIllegal(frameSlot)")
+    protected long writeLong(VirtualFrame frame, FrameSlot frameSlot, long value) {
+        frameSlot.setKind(FrameSlotKind.Long);
+        frame.setLong(frameSlot, value);
+        return value;
+    }
+
+    @Specialization(guards = "isDoubleOrIllegal(frameSlot)")
+    protected double writeDouble(VirtualFrame frame, FrameSlot frameSlot, double value) {
+        frameSlot.setKind(FrameSlotKind.Double);
+        frame.setDouble(frameSlot, value);
+        return value;
+    }
+
+    //@Specialization(contains = {"writeLong", "writeDouble"})
     @Specialization
     protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
         frameSlot.setKind(FrameSlotKind.Object);
         frame.setObject(frameSlot, value);
         return value;
     }
+    
+    protected boolean isLongOrIllegal(FrameSlot frameSlot) {
+        return frameSlot.getKind() == FrameSlotKind.Long || frameSlot.getKind() == FrameSlotKind.Illegal;
+    }    
+    protected boolean isDoubleOrIllegal(FrameSlot frameSlot) {
+        return frameSlot.getKind() == FrameSlotKind.Double || frameSlot.getKind() == FrameSlotKind.Illegal;
+    }    
 }

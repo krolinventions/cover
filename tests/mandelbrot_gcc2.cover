@@ -23,7 +23,7 @@ int main () // int argc, char **argv)
     double x, y, limit = 2.0;
     double Zr, Zi, Cr, Ci, Tr, Ti;
     
-    w = h = 160; // atoi(argv[1]);
+    w = h = 16000; // atoi(argv[1]);
 
     printf("P4\n%d %d\n",w,h);
 	

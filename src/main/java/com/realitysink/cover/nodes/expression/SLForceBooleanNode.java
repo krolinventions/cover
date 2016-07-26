@@ -52,9 +52,4 @@ public abstract class SLForceBooleanNode extends SLExpressionNode {
     protected boolean doBoolean(boolean value) {
         return value;
     }
-    
-    @Specialization
-    protected Object doObject(Object value) {
-        throw new RuntimeException("Could not force to bool");
-    }    
 }
