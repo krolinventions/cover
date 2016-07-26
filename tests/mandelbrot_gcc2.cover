@@ -27,8 +27,6 @@ int main () // int argc, char **argv)
 
     printf("P4\n%d %d\n",w,h);
 	
-	int bytes_written = 0;
-	
     for(y=0;y<h;++y) 
     {
         for(x=0;x<w;++x)
@@ -52,7 +50,6 @@ int main () // int argc, char **argv)
             if(bit_num == 8)
             {
                 putc(byte_acc,stdout);
-                bytes_written++;
                 byte_acc = 0;
                 bit_num = 0;
             }
@@ -60,11 +57,9 @@ int main () // int argc, char **argv)
             {
                 byte_acc <<= (8-w%8);
                 putc(byte_acc,stdout);
-                bytes_written++;
                 byte_acc = 0;
                 bit_num = 0;
             }
         }
     }
-    //printf("\nBytes written: %d\n", bytes_written);
 }
