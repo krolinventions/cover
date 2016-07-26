@@ -20,8 +20,6 @@ import com.realitysink.cover.builtins.CoverPrintfBuiltin;
 import com.realitysink.cover.builtins.CoverPutcBuiltinNodeGen;
 import com.realitysink.cover.builtins.SLPrintlnBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltinFactory;
-import com.realitysink.cover.local.ArrayReferenceLiteralNode;
-import com.realitysink.cover.local.CoverReadArrayValueNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
@@ -51,9 +49,14 @@ import com.realitysink.cover.nodes.expression.SLModNodeGen;
 import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.expression.SLSubNodeGen;
+import com.realitysink.cover.nodes.local.ArrayReferenceLiteralNode;
+import com.realitysink.cover.nodes.local.CoverReadArrayValueNode;
+import com.realitysink.cover.nodes.local.CoverReadArrayValueNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
 import com.realitysink.cover.nodes.local.CoverWriteVariableNodeGen;
 import com.realitysink.cover.nodes.local.CreateLocalArrayNode;
+import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
+import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
 import com.realitysink.cover.nodes.local.FrameSlotLiteral;
 import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
@@ -317,7 +320,7 @@ public class CoverParser {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
         FrameSlot frameSlot = frameDescriptor.findFrameSlot(array.getRawSignature());
-        return new CoverReadArrayValueNode(frameSlot, processExpression(frameDescriptor, subscript));
+        return CoverReadArrayValueNodeGen.create(new FrameSlotLiteral(frameSlot), processExpression(frameDescriptor, subscript));
     }
 
     private SLExpressionNode processBinaryExpression(FrameDescriptor frameDescriptor, CPPASTBinaryExpression expression) {
@@ -458,6 +461,7 @@ public class CoverParser {
                          -CPPASTName (offset: 42,4) -> size
         */
         CPPASTSimpleDeclaration s = (CPPASTSimpleDeclaration) node.getDeclaration();
+        IASTDeclSpecifier declSpecifier = s.getDeclSpecifier();
         IASTDeclarator[] declarators = s.getDeclarators();
         List<SLStatementNode> nodes = new ArrayList<SLStatementNode>();
         for (int i=0;i<declarators.length;i++) {
@@ -471,10 +475,24 @@ public class CoverParser {
                 frameSlot.setKind(FrameSlotKind.Object);
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 SLExpressionNode size = processExpression(frameDescriptor, arrayDeclarator.getArrayModifiers()[0].getConstantExpression());
-                nodes.add(new CreateLocalArrayNode(frameSlot, size));
+                if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
+                    if ("int".equals(declSpecifier.getRawSignature())) {
+                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
+                    } else if ("long".equals(declSpecifier.getRawSignature())) {
+                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size));
+                    } else if ("char".equals(declSpecifier.getRawSignature())) {
+                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
+                    } else if ("double".equals(declSpecifier.getRawSignature())) {
+                        nodes.add(new CreateLocalDoubleArrayNode(frameSlot, size)); // FIXME
+                    } else {
+                        throw new CoverParseException(node, "unsupported array type: " + declSpecifier.getRawSignature());
+                    }
+                } else {
+                    throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
+                }
+                //nodes.add(new CreateLocalArrayNode(frameSlot, size));
             } else if (declarator instanceof CPPASTDeclarator) {
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
-                IASTDeclSpecifier declSpecifier = s.getDeclSpecifier();
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
                     if ("int".equals(declSpecifier.getRawSignature())) {
                         frameSlot.setKind(FrameSlotKind.Long);

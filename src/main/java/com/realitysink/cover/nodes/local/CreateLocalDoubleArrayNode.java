@@ -38,56 +38,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.builtins;
+package com.realitysink.cover.nodes.local;
 
-import java.io.IOException;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
-/**
- * size_t fwrite ( const void * ptr, size_t size, size_t count, FILE * stream );
- */
-@NodeInfo(shortName = "fwrite")
-@NodeChildren({@NodeChild("ptr"), @NodeChild("size"), @NodeChild("count"), @NodeChild("stream")})
-public abstract class CoverFWriteBuiltin extends SLExpressionNode {
-
-    // FIXME: should take a byte[] directly!
-    @Specialization
-    public Object fwrite(Object[] ptr, long size, long count, long stream) {
-        long totalSize = size * count;
-        byte[] bytes = new byte[(int) totalSize];
-        for (int i=0;i<totalSize;i++) {
-            long value = (long) ptr[i];
-            bytes[i] = (byte)value;
-        }
-        doWrite(bytes, size, count, stream);
-        return null; // is actually a void function
-    }
+public class CreateLocalDoubleArrayNode extends SLStatementNode {
+    private FrameSlot frameSlot;
+    @Child
+    SLExpressionNode size;
     
-    @Specialization
-    public Object fwrite(long[] ptr, long size, long count, long stream) {
-        long totalSize = size * count;
-        byte[] bytes = new byte[(int) totalSize];
-        for (int i=0;i<totalSize;i++) {
-            bytes[i] = (byte) ptr[i];
-        }
-        doWrite(bytes, size, count, stream);
-        return null; // is actually a void function
+    public CreateLocalDoubleArrayNode(FrameSlot frameSlot, SLExpressionNode size) {
+        this.frameSlot = frameSlot;
+        this.size = size;
     }
 
-    @TruffleBoundary
-    private void doWrite(byte[] bytes, long size, long count, long stream) {
-        // stream is ignored, we always write to stdout
+    @Override
+    public void executeVoid(VirtualFrame frame) {
         try {
-            System.out.write(bytes);
-        } catch (IOException e) {
+            frame.setObject(frameSlot, new double[(int) size.executeLong(frame)]);
+        } catch (UnexpectedResultException e) {
             throw new CoverRuntimeException(this, e);
         }
+        frameSlot.setKind(FrameSlotKind.Object);
     }
 }
