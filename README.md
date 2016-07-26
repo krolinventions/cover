@@ -6,9 +6,9 @@ This project is at a very early stage.
 
 Cover is licensed under the UPL licence.
 
-## Benchmarks
+## Performance
 
-How fast is it? For some programs half as fast as C, for others as slow as PHP. On the [mandelbrot](http://benchmarksgame.alioth.debian.org/u64q/performance.php?test=mandelbrot) benchmark it scores 38.3 seconds, which is twice as much as the fastest single threaded C version on my machine (14.7 seconds).
+How fast is it? For some programs it runs at 50% of the speed of C, for others it is as slow as PHP. See (Performance)[PERFORMANCE.md] for details.
 
 ## Design
 
