@@ -75,7 +75,6 @@ public abstract class SLReadLocalVariableNode extends SLExpressionNode {
          * written to the local variable. So we do not need to check that the frame really contains
          * a primitive long value.
          */
-        System.err.println("Reading from " + System.identityHashCode(getSlot()));
         return FrameUtil.getLongSafe(frame, getSlot());
     }
     

@@ -42,10 +42,10 @@ public class CoverScope {
     private FrameSlot findFrameSlotInternal(String identifier) {
         FrameSlot frameSlot = variables.get(identifier);
         if (frameSlot != null) {
-            System.err.println("found " + identifier + " in this = " + this + " slot is " + System.identityHashCode(frameSlot));
+            //System.err.println("found " + identifier + " in this = " + this + " slot is " + System.identityHashCode(frameSlot));
             return frameSlot;
         } else if (parent != null) {
-            System.err.println("searching for " + identifier + " in parent scope. this = " + this);
+            //System.err.println("searching for " + identifier + " in parent scope. this = " + this);
             return parent.findFrameSlotInternal(identifier);
         }
         return null;

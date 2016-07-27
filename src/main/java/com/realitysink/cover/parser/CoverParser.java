@@ -523,7 +523,7 @@ public class CoverParser {
                 } else {
                     throw new CoverParseException(node, "unsupported declaration type: " + declSpecifier.getClass().getSimpleName());
                 }
-                System.err.println(name+" declared as " + frameSlot.getKind());
+                //System.err.println(name+" declared as " + frameSlot.getKind());
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
                     SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause());
@@ -594,7 +594,7 @@ public class CoverParser {
         final FrameSlot frameSlot = scope.findFrameSlot(id, name);
         if (frameSlot != null) {
             /* Read of a local variable. */
-            System.err.println(name + " is " + frameSlot.getKind().toString() + " slot is " + System.identityHashCode(frameSlot));
+            // System.err.println(name + " is " + frameSlot.getKind().toString() + " slot is " + System.identityHashCode(frameSlot));
             result = SLReadLocalVariableNodeGen.create(frameSlot);
         } else {
             throw new CoverParseException(id, "ID not found in local scope");
