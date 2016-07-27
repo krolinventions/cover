@@ -57,6 +57,7 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.realitysink.cover.nodes.SLRootNode;
+import com.realitysink.cover.parser.CoverParseException;
 import com.realitysink.cover.parser.CoverParser;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
@@ -95,6 +96,9 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
              */
             CoverParser parser = new CoverParser(source);
             functions = parser.parse();
+        } catch (CoverParseException ex) {
+            CoverParser.printTree(ex.getNode(), 1);
+            throw new IOException(ex);
         } catch (Throwable ex) {
             /*
              * The specification says that exceptions during parsing have to wrapped with an

@@ -15,6 +15,7 @@ public class CoverScope {
     private FrameDescriptor frameDescriptor = new FrameDescriptor();
     private Map<String,SLFunction> functions = new HashMap<String, SLFunction>();
     private Map<String,FrameSlot> variables = new HashMap<String, FrameSlot>();
+    private Map<String,String> typedefs = new HashMap<String, String>();
     private CoverScope parent;
     
     public CoverScope(CoverScope parent) {
@@ -85,5 +86,19 @@ public class CoverScope {
     
     public void addFunction(String functionName, SLFunction function) {
         functions.put(functionName, function);        
+    }
+    public void addTypeDef(String oldType, String newType) {
+        System.err.println("adding new type " + newType + " (" + oldType + ")");
+        typedefs.put(newType, typedefTranslate(oldType));
+    }
+    public String typedefTranslate(String rawSignature) {
+        String translated = typedefs.get(rawSignature);
+        if (translated != null) {
+            return translated;
+        } else if (parent != null) {
+            return parent.typedefTranslate(rawSignature);
+        } else {
+            return rawSignature; // FIXME: check?
+        }
     }
 }

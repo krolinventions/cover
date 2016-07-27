@@ -99,6 +99,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDefinition;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIfStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTNamedTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTReturnStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
@@ -115,6 +116,8 @@ public class CoverParser {
     }
 
     public Map<String, SLRootNode> parse() throws CoreException {
+        final CoverScope scope = new CoverScope(null);
+        
         Map<String, SLRootNode> result = new HashMap<String, SLRootNode>();
 
         FileContent fileContent = FileContent.createForExternalFileLocation(source.getPath());
@@ -135,10 +138,11 @@ public class CoverParser {
             System.err.println("include - " + include.getName());
         }
 
-        printTree(translationUnit, 1);
+        // add standard library FIXME: probably should not do this in a "parse" method
+        scope.addTypeDef("long", "intptr_t");
+        scope.addTypeDef("long", "uint8_t"); // FIXME
 
         // RootNode
-        final CoverScope scope = new CoverScope(null);
         List<SLStatementNode> statements = new ArrayList<SLStatementNode>();
         for (IASTNode node : translationUnit.getChildren()) {
             statements.add(processStatement(scope, node));
@@ -192,13 +196,31 @@ public class CoverParser {
             result =  processForStatement(scope, (CPPASTForStatement) node);
         } else if (node instanceof CPPASTIfStatement) {
             result =  processIfStatement(scope, (CPPASTIfStatement) node);
+        } else if (node instanceof CPPASTSimpleDeclaration) {
+            result =  processTypedef(scope, (CPPASTSimpleDeclaration) node);
         } else {
+            printTree(node, 1);
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
         }
         if (result.getSourceSection() == null) {
             result.setSourceSection(createSourceSectionForNode("statement", node));
         }
         return result;
+    }
+
+    private SLStatementNode processTypedef(CoverScope scope, CPPASTSimpleDeclaration node) {
+        IASTDeclSpecifier declSpecifier = node.getDeclSpecifier();
+        if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
+            CPPASTNamedTypeSpecifier d = (CPPASTNamedTypeSpecifier) declSpecifier;
+            String oldType = d.getName().toString();
+            
+            IASTDeclarator[] declarators = node.getDeclarators();
+            for (IASTDeclarator declarator : declarators) {
+                String newType = declarator.getName().toString();
+                scope.addTypeDef(oldType, newType);
+            }
+        }
+        return new CoverNopExpression();
     }
 
     private SLStatementNode processIfStatement(CoverScope scope, CPPASTIfStatement node) {
@@ -475,9 +497,10 @@ public class CoverParser {
         List<SLStatementNode> nodes = new ArrayList<SLStatementNode>();
         for (int i=0;i<declarators.length;i++) {
             IASTDeclarator declarator = declarators[i];
-            String name = declarator.getName().getRawSignature();
+            String name = declarator.getName().toString();
             FrameSlot frameSlot = scope.addFrameSlot(node, name);
             
+            String typeName = scope.typedefTranslate(declSpecifier.getRawSignature());
             if (declarator instanceof CPPASTArrayDeclarator) {
                 System.err.println(name+" declared as array");
                 // we don't support initializers yet, so keep it empty
@@ -485,16 +508,16 @@ public class CoverParser {
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression());
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
-                    if ("int".equals(declSpecifier.getRawSignature())) {
+                    if ("int".equals(typeName)) {
                         nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
-                    } else if ("long".equals(declSpecifier.getRawSignature())) {
+                    } else if ("long".equals(typeName)) {
                         nodes.add(new CreateLocalLongArrayNode(frameSlot, size));
-                    } else if ("char".equals(declSpecifier.getRawSignature())) {
+                    } else if ("char".equals(typeName)) {
                         nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
-                    } else if ("double".equals(declSpecifier.getRawSignature())) {
+                    } else if ("double".equals(typeName)) {
                         nodes.add(new CreateLocalDoubleArrayNode(frameSlot, size)); // FIXME
                     } else {
-                        throw new CoverParseException(node, "unsupported array type: " + declSpecifier.getRawSignature());
+                        throw new CoverParseException(node, "unsupported array type: " + typeName);
                     }
                 } else {
                     throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
@@ -502,22 +525,22 @@ public class CoverParser {
                 //nodes.add(new CreateLocalArrayNode(frameSlot, size));
             } else if (declarator instanceof CPPASTDeclarator) {
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
-                if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
-                    if ("int".equals(declSpecifier.getRawSignature())) {
-                        frameSlot.setKind(FrameSlotKind.Long);
-                    } else if ("const int".equals(declSpecifier.getRawSignature())) { // FIXME
-                        frameSlot.setKind(FrameSlotKind.Long);
-                    } else if ("long".equals(declSpecifier.getRawSignature())) {
-                        frameSlot.setKind(FrameSlotKind.Long);
-                    } else if ("char".equals(declSpecifier.getRawSignature())) {
-                        frameSlot.setKind(FrameSlotKind.Long);
-                    } else if ("double".equals(declSpecifier.getRawSignature())) {
-                        frameSlot.setKind(FrameSlotKind.Double);
-                    } else {
-                        throw new CoverParseException(node, "unsupported type: " + declSpecifier.getRawSignature());
-                    }
+                if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
+                    CPPASTNamedTypeSpecifier namedTypeSpecifier = (CPPASTNamedTypeSpecifier) declSpecifier;
+                    typeName = scope.typedefTranslate(namedTypeSpecifier.getName().toString());
+                }
+                if ("int".equals(typeName)) {
+                    frameSlot.setKind(FrameSlotKind.Long);
+                } else if ("const int".equals(typeName)) { // FIXME
+                    frameSlot.setKind(FrameSlotKind.Long);
+                } else if ("long".equals(typeName)) {
+                    frameSlot.setKind(FrameSlotKind.Long);
+                } else if ("char".equals(typeName)) {
+                    frameSlot.setKind(FrameSlotKind.Long);
+                } else if ("double".equals(typeName)) {
+                    frameSlot.setKind(FrameSlotKind.Double);
                 } else {
-                    throw new CoverParseException(node, "unsupported declaration type: " + declSpecifier.getClass().getSimpleName());
+                    throw new CoverParseException(node, "unsupported type: " + typeName);
                 }
                 //System.err.println(name+" declared as " + frameSlot.getKind());
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
@@ -618,7 +641,7 @@ public class CoverParser {
         for (int i = 0;i<parameters.length;i++) {
             ICPPASTParameterDeclaration parameter = parameters[i];
             String name = parameter.getDeclarator().getName().getRawSignature();
-            String rawSignature = parameter.getDeclSpecifier().getRawSignature();
+            String rawSignature = scope.typedefTranslate(parameter.getDeclSpecifier().getRawSignature());
             FrameSlotKind kind = FrameSlotKind.Object;
             if ("int".equals(rawSignature)) {
                 kind = FrameSlotKind.Long;
@@ -670,7 +693,7 @@ public class CoverParser {
         return blockNode;
     }
 
-    private void printTree(IASTNode node, int index) {
+    public static void printTree(IASTNode node, int index) {
         IASTNode[] children = node.getChildren();
 
         boolean printContents = true;
