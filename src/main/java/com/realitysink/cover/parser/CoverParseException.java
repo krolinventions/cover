@@ -19,6 +19,9 @@ public class CoverParseException extends RuntimeException {
     }
 
     private static String addContext(IASTNode node, String message) {
+        if (node == null) {
+            return "<unknown>: " + message;
+        }
         IASTFileLocation f = node.getFileLocation();
         return f.getFileName() + ":" + f.getStartingLineNumber() + ": " + message + ": '" + node.getRawSignature() + "'";
     }

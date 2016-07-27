@@ -149,21 +149,4 @@ public abstract class SLStatementNode extends Node {
         }
         return (MaterializedFrame) arguments[0];
     }
-
-    protected Object walkUpStackAndFindObject(Frame frame, String functionName)
-            throws FrameSlotTypeException {
-        // System.out.println("Looking for " + functionName + " in frame " +
-        // frame);
-        FrameSlot slot = frame.getFrameDescriptor().findFrameSlot(functionName);
-        if (slot != null) {
-            return frame.getObject(slot);
-        } else {
-            MaterializedFrame parentFrame = getParentFrame(frame);
-            if (parentFrame != null) {
-                return walkUpStackAndFindObject(parentFrame, functionName);
-            } else {
-                return null;
-            }
-        }
-    }
 }
