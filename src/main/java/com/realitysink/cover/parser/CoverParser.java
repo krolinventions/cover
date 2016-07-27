@@ -8,7 +8,6 @@ import java.util.Map;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeFactory;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.Node;
@@ -52,14 +51,11 @@ import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.expression.SLSubNodeGen;
 import com.realitysink.cover.nodes.local.ArrayReferenceLiteralNode;
-import com.realitysink.cover.nodes.local.CoverReadArrayValueNode;
 import com.realitysink.cover.nodes.local.CoverReadArrayValueNodeGen;
-import com.realitysink.cover.nodes.local.CoverWriteLocalVariableNodeNoEval;
 import com.realitysink.cover.nodes.local.CoverWriteVariableNodeGen;
-import com.realitysink.cover.nodes.local.CreateLocalArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
-import com.realitysink.cover.nodes.local.FrameSlotLiteral;
+import com.realitysink.cover.nodes.local.CoverFrameSlotLiteral;
 import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
@@ -333,7 +329,7 @@ public class CoverParser {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
         FrameSlot frameSlot = scope.findFrameSlot(expression, array.getRawSignature());
-        return CoverReadArrayValueNodeGen.create(new FrameSlotLiteral(frameSlot), processExpression(scope, subscript));
+        return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript));
     }
 
     private SLExpressionNode processBinaryExpression(CoverScope scope, CPPASTBinaryExpression expression) {
@@ -421,7 +417,7 @@ public class CoverParser {
         if (node instanceof CPPASTIdExpression) {
             CPPASTIdExpression x = (CPPASTIdExpression) node;
             FrameSlot frameSlot = scope.findFrameSlot(node, x.getRawSignature());
-            return new FrameSlotLiteral(frameSlot);
+            return new CoverFrameSlotLiteral(frameSlot);
         } else if (node instanceof CPPASTArraySubscriptExpression) {
             CPPASTArraySubscriptExpression x = (CPPASTArraySubscriptExpression) node;
             ICPPASTExpression array = x.getArrayExpression();
@@ -527,10 +523,10 @@ public class CoverParser {
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
                     SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause());
-                    nodes.add(CoverWriteVariableNodeGen.create(new FrameSlotLiteral(frameSlot), expression));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(frameSlot), expression));
                 } else {
                     // FIXME: initialize according to type
-                    nodes.add(CoverWriteVariableNodeGen.create(new FrameSlotLiteral(frameSlot), new SLLongLiteralNode(0)));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(frameSlot), new SLLongLiteralNode(0)));
                 }
             } else {
                 throw new CoverParseException(node, "unknown declarator type: " + declarators[i].getClass().getSimpleName());

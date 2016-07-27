@@ -4,10 +4,10 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
-public class FrameSlotLiteral extends SLExpressionNode {
+public class CoverFrameSlotLiteral extends SLExpressionNode {
     final FrameSlot frameSlot;
 
-    public FrameSlotLiteral(FrameSlot frameSlot) {
+    public CoverFrameSlotLiteral(FrameSlot frameSlot) {
         this.frameSlot = frameSlot;
     }
 
