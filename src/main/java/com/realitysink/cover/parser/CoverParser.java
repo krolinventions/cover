@@ -50,6 +50,7 @@ import com.realitysink.cover.nodes.expression.SLModNodeGen;
 import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.expression.SLSubNodeGen;
+import com.realitysink.cover.nodes.local.CoverNewArrayNode;
 import com.realitysink.cover.nodes.local.ArrayReferenceLiteralNode;
 import com.realitysink.cover.nodes.local.CoverReadArrayValueNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteVariableNodeGen;
@@ -70,6 +71,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTPreprocessorIncludeStatement;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -86,6 +88,7 @@ import org.eclipse.cdt.core.parser.ScannerInfo;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArrayDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArraySubscriptExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTBinaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCastExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompoundStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
@@ -106,6 +109,10 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTUnaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTWhileStatement;
+import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
+import org.eclipse.cdt.internal.core.parser.SavedFilesProvider;
+import org.eclipse.cdt.internal.core.parser.scanner.CharArray;
+import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.core.runtime.CoreException;
 
 public class CoverParser {
@@ -123,22 +130,32 @@ public class CoverParser {
         FileContent fileContent = FileContent.createForExternalFileLocation(source.getPath());
 
         Map<String, String> definedSymbols = new HashMap<String, String>();
-        String[] includePaths = new String[0];
+        String[] includePaths = new String[] {"/<builtin>"};
         IScannerInfo info = new ScannerInfo(definedSymbols, includePaths);
         IParserLogService log = new DefaultLogService();
 
-        IncludeFileContentProvider emptyIncludes = IncludeFileContentProvider.getEmptyFilesProvider();
+        // FIXME: this doesn't work yet!
+        IncludeFileContentProvider fileContentProvider =  new SavedFilesProvider() {
+            @Override
+            public InternalFileContent getContentForInclusion(String path, IMacroDictionary macroDictionary) {
+                if (path.equals("/<builtin>/stdio.h")) {
+                    System.err.println("including " + path);
+                    return new InternalFileContent(path, new CharArray("typedef long intptr_t; typedef long uint8_t; int stdout=0;"));
+                } else {
+                    return new InternalFileContent(path, new CharArray(""));
+                }
+            }
+        };
 
         int opts = 8;
         IASTTranslationUnit translationUnit = GPPLanguage.getDefault().getASTTranslationUnit(fileContent, info,
-                emptyIncludes, null, opts, log);
+                fileContentProvider, null, opts, log);
 
         IASTPreprocessorIncludeStatement[] includes = translationUnit.getIncludeDirectives();
         for (IASTPreprocessorIncludeStatement include : includes) {
             System.err.println("include - " + include.getName());
         }
-
-        // add standard library FIXME: probably should not do this in a "parse" method
+        
         scope.addTypeDef("long", "intptr_t");
         scope.addTypeDef("long", "uint8_t"); // FIXME
 
@@ -179,7 +196,7 @@ public class CoverParser {
             result = processFunctionDefinition(scope, (CPPASTFunctionDefinition) node);
         } else if (node instanceof CPPASTExpressionStatement) {
             CPPASTExpressionStatement x = (CPPASTExpressionStatement) node;
-            result =  processExpression(scope, x.getExpression());
+            result =  processExpression(scope, x.getExpression(), null);
         } else if (node instanceof CPPASTDeclarationStatement) {
             result =  processVariableDeclaration(scope, (CPPASTDeclarationStatement) node);
         } else if (node instanceof CPPASTWhileStatement) {
@@ -227,7 +244,7 @@ public class CoverParser {
         CoverScope ifScope = new CoverScope(scope);
         CoverScope thenScope = new CoverScope(ifScope);
         CoverScope elseScope = new CoverScope(ifScope);
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(SLForceBooleanNodeGen.create(processExpression(ifScope, node.getConditionExpression())));
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(SLForceBooleanNodeGen.create(processExpression(ifScope, node.getConditionExpression(), null)));
         SLStatementNode thenPartNode = processStatement(thenScope, node.getThenClause());
         SLStatementNode elsePartNode = null;
         if (node.getElseClause() != null) {
@@ -241,7 +258,7 @@ public class CoverParser {
         CoverScope scope2 = new CoverScope(scope);
         CoverScope conditionScope = new CoverScope(scope);
         // a do {} while() loop is just a while loop with the body prepended
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(conditionScope, node.getCondition()));
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(conditionScope, node.getCondition(), null));
         SLStatementNode bodyNode1 = processStatement(scope1, node.getBody());
         SLStatementNode bodyNode2 = processStatement(scope2, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode2);
@@ -276,8 +293,8 @@ public class CoverParser {
         IASTExpression condition = node.getConditionExpression();
         IASTExpression iteration = node.getIterationExpression();
         SLStatementNode initializerNode = processStatement(initializerScope, initializer);
-        SLExpressionNode conditionNode = processExpression(conditionScope, condition);
-        SLExpressionNode iterationNode = processExpression(iterationScope, iteration);
+        SLExpressionNode conditionNode = processExpression(conditionScope, condition, null);
+        SLExpressionNode iterationNode = processExpression(iterationScope, iteration, null);
         SLStatementNode bodyNode = processStatement(bodyScope, node.getBody());
         /*
          * We turn this:
@@ -306,7 +323,7 @@ public class CoverParser {
 
     private SLStatementNode processReturn(CoverScope scope, CPPASTReturnStatement node) {
         IASTExpression returnValue = node.getReturnValue();
-        final SLReturnNode returnNode = new SLReturnNode(processExpression(scope, returnValue));
+        final SLReturnNode returnNode = new SLReturnNode(processExpression(scope, returnValue, null));
         return returnNode;
     }
 
@@ -319,13 +336,13 @@ public class CoverParser {
            -CPPASTLiteralExpression (offset: 38,2) -> 10
          -CPPASTCompoundStatement (offset: 42,32) -> {
          */
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition()));
+        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition(), null));
         SLStatementNode bodyNode = processStatement(scope, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
         return whileNode;
     }
 
-    private SLExpressionNode processExpression(CoverScope scope, IASTExpression expression) {
+    private SLExpressionNode processExpression(CoverScope scope, IASTExpression expression, String requestedType) {
         SLExpressionNode result;
         if (expression instanceof CPPASTBinaryExpression) {
             result = processBinaryExpression(scope, (CPPASTBinaryExpression) expression);
@@ -336,9 +353,12 @@ public class CoverParser {
         } else if (expression instanceof CPPASTIdExpression) {
             result = processId(scope, (CPPASTIdExpression) expression);                    
         } else if (expression instanceof CPPASTFunctionCallExpression) {
-            result = processFunctionCall(scope, expression);
+            result = processFunctionCall(scope, expression, requestedType);
         } else if (expression instanceof CPPASTUnaryExpression) {
             result = (SLExpressionNode) processUnary(scope, (CPPASTUnaryExpression) expression);
+        } else if (expression instanceof CPPASTCastExpression) {
+            warn(expression, "ignoring cast");
+            result = processExpression(scope, ((CPPASTCastExpression)expression).getOperand(), null);
         } else {
             throw new CoverParseException(expression, "unknown expression type " + expression.getClass().getSimpleName());
         }
@@ -351,81 +371,81 @@ public class CoverParser {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
         FrameSlot frameSlot = scope.findFrameSlot(expression, array.getRawSignature());
-        return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript));
+        return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript, null));
     }
 
     private SLExpressionNode processBinaryExpression(CoverScope scope, CPPASTBinaryExpression expression) {
         int operator = expression.getOperator();
         SLExpressionNode result;
         if (operator == CPPASTBinaryExpression.op_lessThan) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLLessThanNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_lessEqual) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLLessOrEqualNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_equals) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLEqualNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_greaterThan) {
             // FIXME: this messes with evaluation order!
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLLessThanNodeGen.create(rightNode, leftNode);
         } else if (operator == CPPASTBinaryExpression.op_plusAssign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2());
-            SLExpressionNode source = processExpression(scope, expression.getOperand1());
+            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = CoverWriteVariableNodeGen.create(destination, SLAddNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_assign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode value = processExpression(scope, expression.getOperand2());
+            SLExpressionNode value = processExpression(scope, expression.getOperand2(), null);
             result = CoverWriteVariableNodeGen.create(destination, value);
         } else if (operator == CPPASTBinaryExpression.op_multiply) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLMulNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_divide) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLDivNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_plus) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLAddNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_minus) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLSubNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_logicalAnd) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLLogicalAndNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_binaryAndAssign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2());
-            SLExpressionNode source = processExpression(scope, expression.getOperand1());
+            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = CoverWriteVariableNodeGen.create(destination, SLBinaryAndNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_shiftRightAssign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2());
-            SLExpressionNode source = processExpression(scope, expression.getOperand1());
+            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = CoverWriteVariableNodeGen.create(destination, SLBinaryShiftRightNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_shiftLeftAssign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2());
-            SLExpressionNode source = processExpression(scope, expression.getOperand1());
+            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = CoverWriteVariableNodeGen.create(destination, SLBinaryShiftLeftNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_binaryOrAssign) {
             SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2());
-            SLExpressionNode source = processExpression(scope, expression.getOperand1());
+            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = CoverWriteVariableNodeGen.create(destination, SLBinaryOrNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_modulo) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1());
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2());
+            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLModNodeGen.create(leftNode, rightNode);
         } else {
             throw new CoverParseException(expression, "unknown operator type " + operator);
@@ -448,7 +468,7 @@ public class CoverParser {
             if (frameSlot == null) {
                 throw new CoverParseException(node, "could not find local array " + array.getRawSignature());
             }
-            return new ArrayReferenceLiteralNode(frameSlot, processExpression(scope, argument)); 
+            return new ArrayReferenceLiteralNode(frameSlot, processExpression(scope, argument, null)); 
         }
         throw new CoverParseException(node, "unknown destination type: " + node.getClass().getSimpleName());
     }
@@ -461,15 +481,15 @@ public class CoverParser {
         } else if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_prefixDecr) {
             change = -1;
         } else if (operator == IASTUnaryExpression.op_bracketedPrimary) {
-            return processExpression(scope, node.getOperand());
+            return processExpression(scope, node.getOperand(), null);
         } else if (operator == IASTUnaryExpression.op_tilde) {
-            return SLBinaryNotNodeGen.create(processExpression(scope, node.getOperand()));
+            return SLBinaryNotNodeGen.create(processExpression(scope, node.getOperand(), null));
         } else {
             throw new CoverParseException(node, "Unsupported operator type " + operator);
         }
         
         // build assign(name, addnode(name, 1))
-        SLAddNode addNode = SLAddNodeGen.create(processExpression(scope, node.getOperand()), new SLLongLiteralNode(change));
+        SLAddNode addNode = SLAddNodeGen.create(processExpression(scope, node.getOperand(), null), new SLLongLiteralNode(change));
         return CoverWriteVariableNodeGen.create(processExpressionAsDestination(scope, node.getOperand()), addNode);
     }
 
@@ -500,13 +520,24 @@ public class CoverParser {
             String name = declarator.getName().toString();
             FrameSlot frameSlot = scope.addFrameSlot(node, name);
             
-            String typeName = scope.typedefTranslate(declSpecifier.getRawSignature());
+            // throw away "const"
+            String rawTypeName = declSpecifier.getRawSignature();
+            String parts[] = rawTypeName.split(" ");
+            if (parts.length > 1) {
+                if (!parts[0].equals("const")) {
+                    throw new CoverParseException(node, "unknown declaration type: " + parts[0]);
+                } else {
+                    warn(node, "ignoring const");
+                }
+            }
+            String typeName = scope.typedefTranslate(parts[parts.length-1]);
+            
             if (declarator instanceof CPPASTArrayDeclarator) {
                 System.err.println(name+" declared as array");
                 // we don't support initializers yet, so keep it empty
                 frameSlot.setKind(FrameSlotKind.Object);
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
-                SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression());
+                SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
                     if ("int".equals(typeName)) {
                         nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
@@ -522,16 +553,18 @@ public class CoverParser {
                 } else {
                     throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
                 }
-                //nodes.add(new CreateLocalArrayNode(frameSlot, size));
             } else if (declarator instanceof CPPASTDeclarator) {
+                printTree(node, 1);
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
                 if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
                     CPPASTNamedTypeSpecifier namedTypeSpecifier = (CPPASTNamedTypeSpecifier) declSpecifier;
                     typeName = scope.typedefTranslate(namedTypeSpecifier.getName().toString());
                 }
-                if ("int".equals(typeName)) {
-                    frameSlot.setKind(FrameSlotKind.Long);
-                } else if ("const int".equals(typeName)) { // FIXME
+                IASTPointerOperator[] pointerOperators = d.getPointerOperators();
+                if (pointerOperators.length > 0) {
+                    warn(d, "pointer found: setting type to object, but should probably do smarter things");
+                    frameSlot.setKind(FrameSlotKind.Object);
+                } else if ("int".equals(typeName)) {
                     frameSlot.setKind(FrameSlotKind.Long);
                 } else if ("long".equals(typeName)) {
                     frameSlot.setKind(FrameSlotKind.Long);
@@ -545,7 +578,7 @@ public class CoverParser {
                 //System.err.println(name+" declared as " + frameSlot.getKind());
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
-                    SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause());
+                    SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
                     nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(frameSlot), expression));
                 } else {
                     // FIXME: initialize according to type
@@ -556,6 +589,14 @@ public class CoverParser {
             }
         }
         return new SLBlockNode(nodes.stream().toArray(SLStatementNode[]::new));
+    }
+
+    private void warn(IASTNode node, String message) {
+        System.err.println(nodeMessage(node, "warning: " + message));
+    }
+
+    private void info(IASTNode node, String message) {
+        System.err.println(nodeMessage(node, "info: " + message));
     }
 
     private SLExpressionNode processLiteral(CoverScope scope, CPPASTLiteralExpression y) {
@@ -579,14 +620,14 @@ public class CoverParser {
         }
     }
 
-    private SLExpressionNode processFunctionCall(CoverScope scope, IASTNode node) {
+    private SLExpressionNode processFunctionCall(CoverScope scope, IASTNode node, String requestedType) {
         CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
         String name = functionCall.getFunctionNameExpression().getRawSignature();
 
         List<SLExpressionNode> coverArguments = new ArrayList<>();
         for (IASTInitializerClause x : functionCall.getArguments()) {
             if (x instanceof IASTExpression) {
-                coverArguments.add(processExpression(scope, (IASTExpression) x));
+                coverArguments.add(processExpression(scope, (IASTExpression) x, null));
             } else {
                 throw new CoverParseException(node, "Unknown function argument type: " + x.getClass());
             }
@@ -602,6 +643,11 @@ public class CoverParser {
             return CoverFWriteBuiltinNodeGen.create(argumentArray[0], argumentArray[1], argumentArray[2], argumentArray[3]);
         } else if ("putc".equals(name)) {
             return CoverPutcBuiltinNodeGen.create(argumentArray[0], argumentArray[1]);
+        } else if ("malloc".equals(name)) {
+            info(node, "inserting malloc for type " + requestedType);
+            return new CoverNewArrayNode(requestedType, argumentArray[0]);
+        } else if ("free".equals(name)) {
+            return new CoverNopExpression();
         } else {
             return new SLInvokeNode(new CoverFunctionLiteralNode(scope.findFunction(node, name)), argumentArray);
         }
@@ -646,7 +692,8 @@ public class CoverParser {
             if ("int".equals(rawSignature)) {
                 kind = FrameSlotKind.Long;
             }
-            FrameSlot frameSlot = newScope.addFrameSlot(name, kind);
+            FrameSlot frameSlot = newScope.addFrameSlot(functionDefintion, name);
+            frameSlot.setKind(kind);
             argumentArray[i] = frameSlot;
             
             // copy to local var in the prologue
@@ -691,6 +738,14 @@ public class CoverParser {
         }
         SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
         return blockNode;
+    }
+
+    static String nodeMessage(IASTNode node, String message) {
+        if (node == null) {
+            return "<unknown>: " + message;
+        }
+        IASTFileLocation f = node.getFileLocation();
+        return f.getFileName() + ":" + f.getStartingLineNumber() + ": " + message + ": '" + node.getRawSignature() + "'";
     }
 
     public static void printTree(IASTNode node, int index) {

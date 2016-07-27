@@ -51,9 +51,6 @@ public class CoverScope {
         }
         return null;
     }
-    public FrameSlot addFrameSlot(String identifier, FrameSlotKind kind) {
-        return frameDescriptor.addFrameSlot(identifier, kind);
-    }
 
     public SLFunction findFunction(IASTNode node, String identifier) {
         SLFunction function = findFunctionInternal(identifier);
