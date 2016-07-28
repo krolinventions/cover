@@ -44,11 +44,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.Map;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
@@ -56,7 +53,7 @@ import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
-import com.realitysink.cover.nodes.SLRootNode;
+import com.realitysink.cover.nodes.CoverScope;
 import com.realitysink.cover.parser.CoverParseException;
 import com.realitysink.cover.parser.CoverParser;
 import com.realitysink.cover.runtime.SLContext;
@@ -88,16 +85,18 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
 
     @Override
     protected CallTarget parse(Source source, Node node, String... argumentNames) throws IOException {
-        Map<String, SLRootNode> functions;
+        CoverScope scope = new CoverScope(null);
         try {
             /*
              * Parse the provided source. At this point, we do not have a SLContext yet.
              * Registration of the functions with the SLContext happens lazily in SLEvalRootNode.
              */
-            CoverParser parser = new CoverParser(source);
-            functions = parser.parse();
+            CoverParser parser = new CoverParser(source, scope);
+            parser.parse();
         } catch (CoverParseException ex) {
-            CoverParser.printTree(ex.getNode(), 1);
+            if (ex.getNode() != null) {
+                CoverParser.printTree(ex.getNode(), 1);
+            }
             throw new IOException(ex);
         } catch (Throwable ex) {
             /*
@@ -107,8 +106,7 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
             throw new IOException(ex);
         }
 
-        SLRootNode main = functions.get("_file");
-        return Truffle.getRuntime().createCallTarget(main);
+        return scope.findFunction(null, "_init").getCallTarget();
     }
 
     @Override

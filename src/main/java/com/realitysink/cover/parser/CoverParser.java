@@ -1,5 +1,6 @@
 package com.realitysink.cover.parser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -79,6 +80,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.cpp.ICPPASTExpression;
 import org.eclipse.cdt.core.dom.ast.cpp.ICPPASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.gnu.cpp.GPPLanguage;
+import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.DefaultLogService;
 import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
@@ -117,37 +119,52 @@ import org.eclipse.core.runtime.CoreException;
 
 public class CoverParser {
     private Source source;
+    final CoverScope scope;
     
-    public CoverParser(Source source) {
+    public CoverParser(Source source, CoverScope scope) {
         this.source = source;
+        this.scope = scope;
     }
 
-    public Map<String, SLRootNode> parse() throws CoreException {
-        final CoverScope scope = new CoverScope(null);
-        
-        Map<String, SLRootNode> result = new HashMap<String, SLRootNode>();
+    public void parse() throws CoreException {
+        parseRaw();
+        if (scope.findFunction(null, "main") != null) {
+            // add init function
+            CoverParser parser;
+            try {
+                parser = new CoverParser(Source.fromFileName(System.getProperty("user.dir") + "/runtime/init.cover"), scope);
+            } catch (IOException e) {
+                throw new CoverParseException(null, "could not include _init", e);
+            }
+            parser.parseRaw();
+        }
+    }
+    
+    private void parseRaw() throws CoreException {
+        System.err.println("Parsing " + source.getPath());
 
         FileContent fileContent = FileContent.createForExternalFileLocation(source.getPath());
 
         Map<String, String> definedSymbols = new HashMap<String, String>();
-        String[] includePaths = new String[] {"/<builtin>"};
+        String[] includePaths = new String[] {System.getProperty("user.dir") + "/runtime/include"};
         IScannerInfo info = new ScannerInfo(definedSymbols, includePaths);
         IParserLogService log = new DefaultLogService();
 
-        // FIXME: this doesn't work yet!
         IncludeFileContentProvider fileContentProvider =  new SavedFilesProvider() {
             @Override
             public InternalFileContent getContentForInclusion(String path, IMacroDictionary macroDictionary) {
-                if (path.equals("/<builtin>/stdio.h")) {
-                    System.err.println("including " + path);
-                    return new InternalFileContent(path, new CharArray("typedef long intptr_t; typedef long uint8_t; int stdout=0;"));
-                } else {
-                    return new InternalFileContent(path, new CharArray(""));
+                // we somehow don't get the contents of included headers parsed, so act on them here
+                Source includedSource;
+                try {
+                    includedSource = Source.fromFileName(path);
+                } catch (IOException e) {
+                    throw new CoverParseException(null, "could not read included file " + path, e);
                 }
+                return new InternalFileContent(path, new CharArray(includedSource.getCode()));
             }
         };
 
-        int opts = 8;
+        int opts = ILanguage.OPTION_IS_SOURCE_UNIT;
         IASTTranslationUnit translationUnit = GPPLanguage.getDefault().getASTTranslationUnit(fileContent, info,
                 fileContentProvider, null, opts, log);
 
@@ -156,27 +173,10 @@ public class CoverParser {
             System.err.println("include - " + include.getName());
         }
         
-        scope.addTypeDef("long", "intptr_t");
-        scope.addTypeDef("long", "uint8_t"); // FIXME
-
         // RootNode
-        List<SLStatementNode> statements = new ArrayList<SLStatementNode>();
         for (IASTNode node : translationUnit.getChildren()) {
-            statements.add(processStatement(scope, node));
+            processStatement(scope, node);
         }
-
-        // hack in a call to main
-        statements.add(new SLInvokeNode(new CoverFunctionLiteralNode(scope.findFunction(null, "main")), new SLExpressionNode[0]));
-
-        SLBlockNode blockNode = new SLBlockNode(statements.toArray(new SLStatementNode[statements.size()]));
-        blockNode.setSourceSection(source.createSection("_file", 1));
-        final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(blockNode);
-        functionBodyNode.setSourceSection(source.createSection("_file", 1));
-        final SLRootNode rootNode = new SLRootNode(scope.getFrameDescriptor(), functionBodyNode, source.createSection("_file", 1), "_file");
-        result.put("_file", rootNode);
-        printTruffleNodes(rootNode, 0);
-
-        return result;
     }
 
     private void printTruffleNodes(Node n2, int level) {
@@ -190,7 +190,7 @@ public class CoverParser {
     }
 
     private SLStatementNode processStatement(CoverScope scope, IASTNode node) {
-        System.err.println("processStatement for " + node.getClass().getSimpleName());
+        //info(node, "processStatement for " + node.getClass().getSimpleName());
         SLStatementNode result;
         if (node instanceof CPPASTFunctionDefinition) {
             result = processFunctionDefinition(scope, (CPPASTFunctionDefinition) node);
@@ -198,7 +198,7 @@ public class CoverParser {
             CPPASTExpressionStatement x = (CPPASTExpressionStatement) node;
             result =  processExpression(scope, x.getExpression(), null);
         } else if (node instanceof CPPASTDeclarationStatement) {
-            result =  processVariableDeclaration(scope, (CPPASTDeclarationStatement) node);
+            result =  processDeclarationStatement(scope, (CPPASTDeclarationStatement) node);
         } else if (node instanceof CPPASTWhileStatement) {
             result =  processWhile(scope, (CPPASTWhileStatement) node);
         } else if (node instanceof CPPASTDoStatement) {
@@ -214,7 +214,7 @@ public class CoverParser {
         } else if (node instanceof CPPASTIfStatement) {
             result =  processIfStatement(scope, (CPPASTIfStatement) node);
         } else if (node instanceof CPPASTSimpleDeclaration) {
-            result =  processTypedef(scope, (CPPASTSimpleDeclaration) node);
+            result =  processDeclaration(scope, (CPPASTSimpleDeclaration) node);
         } else {
             printTree(node, 1);
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
@@ -236,8 +236,24 @@ public class CoverParser {
                 String newType = declarator.getName().toString();
                 scope.addTypeDef(oldType, newType);
             }
+            return new CoverNopExpression();
+        } else if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
+            CPPASTSimpleDeclSpecifier d = (CPPASTSimpleDeclSpecifier) declSpecifier;
+            String oldType = "";
+            if (d.isLong()) {
+                oldType = "long";
+            } else {
+                throw new CoverParseException(node, "unsupported typedef type");
+            }
+            IASTDeclarator[] declarators = node.getDeclarators();
+            for (IASTDeclarator declarator : declarators) {
+                String newType = declarator.getName().toString();
+                scope.addTypeDef(oldType, newType);
+            }
+            return new CoverNopExpression();
+        } else {
+            throw new CoverParseException(node, "unknown declSpecifier: " + declSpecifier.getClass().getSimpleName());
         }
-        return new CoverNopExpression();
     }
 
     private SLStatementNode processIfStatement(CoverScope scope, CPPASTIfStatement node) {
@@ -343,6 +359,9 @@ public class CoverParser {
     }
 
     private SLExpressionNode processExpression(CoverScope scope, IASTExpression expression, String requestedType) {
+        if (expression == null) {
+            throw new CoverParseException(null, "null expression");
+        }
         SLExpressionNode result;
         if (expression instanceof CPPASTBinaryExpression) {
             result = processBinaryExpression(scope, (CPPASTBinaryExpression) expression);
@@ -493,27 +512,14 @@ public class CoverParser {
         return CoverWriteVariableNodeGen.create(processExpressionAsDestination(scope, node.getOperand()), addNode);
     }
 
-    private SLStatementNode processVariableDeclaration(CoverScope scope, CPPASTDeclarationStatement node) {
-        /* -CPPASTDeclarationStatement (offset: 14,10) -> int i = 0;
-             -CPPASTSimpleDeclaration (offset: 14,10) -> int i = 0;
-               -CPPASTSimpleDeclSpecifier (offset: 14,3) -> int
-               -CPPASTDeclarator (offset: 18,5) -> i = 0
-                 -CPPASTName (offset: 18,1) -> i
-                 -CPPASTEqualsInitializer (offset: 20,3) -> = 0
-                   -CPPASTLiteralExpression (offset: 22,1) -> 0
-            for arrays:
-               -CPPASTDeclarationStatement (offset: 36,12) -> int a[size];
-                 -CPPASTSimpleDeclaration (offset: 36,12) -> int a[size];
-                   -CPPASTSimpleDeclSpecifier (offset: 36,3) -> int
-                   -CPPASTArrayDeclarator (offset: 40,7) -> a[size]
-                     -CPPASTName (offset: 40,1) -> a
-                     -CPPASTArrayModifier (offset: 41,6) -> [size]
-                       -CPPASTIdExpression (offset: 42,4) -> size
-                         -CPPASTName (offset: 42,4) -> size
-        */
+    private SLStatementNode processDeclarationStatement(CoverScope scope, CPPASTDeclarationStatement node) {
         CPPASTSimpleDeclaration s = (CPPASTSimpleDeclaration) node.getDeclaration();
-        IASTDeclSpecifier declSpecifier = s.getDeclSpecifier();
-        IASTDeclarator[] declarators = s.getDeclarators();
+        return processDeclaration(scope, s);
+    }
+
+    private SLStatementNode processDeclaration(CoverScope scope, CPPASTSimpleDeclaration node) {
+        IASTDeclSpecifier declSpecifier = node.getDeclSpecifier();
+        IASTDeclarator[] declarators = node.getDeclarators();
         List<SLStatementNode> nodes = new ArrayList<SLStatementNode>();
         for (int i=0;i<declarators.length;i++) {
             IASTDeclarator declarator = declarators[i];
@@ -524,6 +530,10 @@ public class CoverParser {
             String rawTypeName = declSpecifier.getRawSignature();
             String parts[] = rawTypeName.split(" ");
             if (parts.length > 1) {
+                if (parts[0].equals("typedef")) {
+                    // retry as typedef!
+                    return processTypedef(scope, node);
+                }
                 if (!parts[0].equals("const")) {
                     throw new CoverParseException(node, "unknown declaration type: " + parts[0]);
                 } else {
@@ -554,7 +564,6 @@ public class CoverParser {
                     throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
                 }
             } else if (declarator instanceof CPPASTDeclarator) {
-                printTree(node, 1);
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
                 if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
                     CPPASTNamedTypeSpecifier namedTypeSpecifier = (CPPASTNamedTypeSpecifier) declSpecifier;
