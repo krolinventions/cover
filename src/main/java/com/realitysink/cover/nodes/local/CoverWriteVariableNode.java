@@ -43,87 +43,69 @@ package com.realitysink.cover.nodes.local;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
 @NodeChildren({@NodeChild("destination"), @NodeChild("value")})
 @NodeInfo(shortName="=")
 public abstract class CoverWriteVariableNode extends SLExpressionNode {
-    @Specialization(guards="frameSlotIsObject(arrayReference)")
-    protected Object writeLongArray(VirtualFrame frame, ArrayReference arrayReference, long value) {
-        long[] array = (long[]) frame.getValue(arrayReference.getFrameSlot());
+    
+    @Specialization(guards="isLongArrayElement(ref)")
+    protected long writeLongArrayElement(VirtualFrame frame, CoverReference ref, long value) {
+        long[] array = (long[]) frame.getValue(ref.getFrameSlot());
         try {
-            array[(int) arrayReference.getIndex()] = value;
+            array[ref.getArrayIndex()] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
         }
         return value;
     }
     
-    @Specialization(guards="frameSlotIsObject(arrayReference)")
-    protected Object writeDoubleArray(VirtualFrame frame, ArrayReference arrayReference, double value) {
-        double[] array = (double[]) frame.getValue(arrayReference.getFrameSlot());
+    @Specialization(guards="isDoubleArrayElement(ref)")
+    protected double writeDoubleArrayElement(VirtualFrame frame, CoverReference ref, double value) {
+        double[] array;
         try {
-            array[(int) arrayReference.getIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+            array = (double[]) frame.getValue(ref.getFrameSlot());
+        } catch (ClassCastException e1) {
+            throw new CoverRuntimeException(this, e1);
         }
-        return value;
-    }
-
-    @Specialization(guards="frameSlotIsObject(arrayReference)")
-    protected Object writeObjectArray(VirtualFrame frame, ArrayReference arrayReference, Object value) {
-        Object[] array = (Object[]) frame.getValue(arrayReference.getFrameSlot());
         try {
-            array[(int) arrayReference.getIndex()] = value;
+            array[ref.getArrayIndex()] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + arrayReference.getIndex() + " out of bounds for " + arrayReference.getFrameSlot().getIdentifier());
+            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
         }
         return value;
     }
     
-    protected boolean frameSlotIsObject(ArrayReference arrayReference) {
-        return isObjectOrIllegal(arrayReference.getFrameSlot());
-    }
-
-    @Specialization(guards = "isLong(frameSlot)")
-    protected long writeLong(VirtualFrame frame, FrameSlot frameSlot, long value) {
-        frame.setLong(frameSlot, value);
-        return value;
-    }
-
-    @Specialization(guards = "isDouble(frameSlot)")
-    protected double writeDouble(VirtualFrame frame, FrameSlot frameSlot, double value) {
-        frame.setDouble(frameSlot, value);
-        return value;
-    }
-
-    @Specialization(contains = {"writeLong", "writeDouble"},
-            guards = {"isObjectOrIllegal(frameSlot)", "isNotBoxed(value)"})
-    protected Object write(VirtualFrame frame, FrameSlot frameSlot, Object value) {
-        //System.err.println("setting " + frameSlot.getIdentifier() + " to object " + value);
-        frameSlot.setKind(FrameSlotKind.Object);
-        frame.setObject(frameSlot, value);
+    @Specialization(guards="isObjectArrayElement(ref)")
+    protected Object writeObjectArrayElement(VirtualFrame frame, CoverReference ref, Object value) {
+        Object[] array = (Object[]) frame.getValue(ref.getFrameSlot());
+        try {
+            array[ref.getArrayIndex()] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
+        }
         return value;
     }
     
-    protected boolean isLong(FrameSlot frameSlot) {
-        return frameSlot.getKind() == FrameSlotKind.Long;
-    }    
-    protected boolean isDouble(FrameSlot frameSlot) {
-        return frameSlot.getKind() == FrameSlotKind.Double;
-    }    
-    protected boolean isObjectOrIllegal(FrameSlot frameSlot) {
-        //System.err.println("isObjectOrIllegal:"+ frameSlot.getIdentifier() + " has type " + frameSlot.getKind());
-        return frameSlot.getKind() == FrameSlotKind.Object || frameSlot.getKind() == FrameSlotKind.Illegal;
-    }    
-    protected boolean isNotBoxed(Object value) {
-        if (value instanceof Long) return false;
-        if (value instanceof Double) return false;
-        return true;
+    @Specialization(guards = "isLong(ref)")
+    protected long writeLong(VirtualFrame frame, CoverReference ref, long value) {
+        frame.setLong(ref.getFrameSlot(), value);
+        return value;
+    }
+
+    @Specialization(guards = "isDouble(ref)")
+    protected double writeDouble(VirtualFrame frame, CoverReference ref, double value) {
+        frame.setDouble(ref.getFrameSlot(), value);
+        return value;
+    }
+
+    @Specialization(guards = {"isObject(ref)", "isNotBoxed(value)"})
+    protected Object write(VirtualFrame frame, CoverReference ref, Object value) {
+        frame.setObject(ref.getFrameSlot(), value);
+        return value;
     }
 }

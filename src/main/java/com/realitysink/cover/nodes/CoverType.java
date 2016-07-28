@@ -2,6 +2,8 @@ package com.realitysink.cover.nodes;
 
 import java.util.Map;
 
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.realitysink.cover.parser.CoverParseException;
 
@@ -14,6 +16,8 @@ public class CoverType {
         LONG,
         DOUBLE,
         STRING,
+        ARRAY,
+        ARRAY_ELEMENT,
         FUNCTION,
         OBJECT,
         JAVA_OBJECT
@@ -21,19 +25,15 @@ public class CoverType {
     
     private BasicType basicType;
     
-    /*
-     * Is this actually and array of elements of this type?
-     */
-    private boolean isArray = false;
-    
     private CoverType[] functionArguments;
     private CoverType functionReturn;
     
     /*
      * For variables.
      */
-    
     private Map<String, CoverType> objectMembers;
+    
+    private CoverType arrayType;
     
     public CoverType(BasicType basicType) {
         this.basicType = basicType;
@@ -66,27 +66,43 @@ public class CoverType {
         return this;
     }
 
-    public boolean getIsArray() {
-        return isArray;
-    }
-
-    public CoverType setIsArray(boolean isArray) {
-        this.isArray = isArray;
-        return this;
-    }
-
-    public FrameSlotKind getFrameSlotKind() {
+    public FrameSlotKind getFrameSlotKind(IASTNode node) {
         switch (basicType) {
         case LONG: return FrameSlotKind.Long;
         case DOUBLE: return FrameSlotKind.Double;
         case OBJECT: return FrameSlotKind.Object;
         case STRING: return FrameSlotKind.Object;
+        case ARRAY: return FrameSlotKind.Object;
         case JAVA_OBJECT: return FrameSlotKind.Object;
-        default:   throw new CoverParseException(null, "unsupported reference for frameslotkind: " + basicType.toString());
+        case ARRAY_ELEMENT: return arrayType.getFrameSlotKind(node);
+        default:   throw new CoverParseException(node, "unsupported reference for frameslotkind: " + basicType.toString());
         }
     }
 
     public BasicType getBasicType() {
         return basicType;
     }
+
+    public CoverType getArrayType() {
+        return arrayType;
+    }
+
+    public CoverType setArrayType(CoverType typeOfContents) {
+        this.arrayType = typeOfContents;
+        return this;
+    }
+
+    public boolean isUnboxed(IASTNode node) {
+        switch (basicType) {
+        case LONG: return true;
+        case DOUBLE: return true;
+        case OBJECT: return false;
+        case STRING: return false;
+        case JAVA_OBJECT: return false;
+        case ARRAY: return false;
+        case ARRAY_ELEMENT: return arrayType.isUnboxed(node);
+        default:   throw new CoverParseException(node, "unsupported reference for isUnboxed: " + basicType.toString());
+        }
+    }
+
 }

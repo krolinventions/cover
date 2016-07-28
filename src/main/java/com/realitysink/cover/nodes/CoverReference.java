@@ -1,6 +1,7 @@
 package com.realitysink.cover.nodes;
 
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.realitysink.cover.nodes.CoverType.BasicType;
 import com.realitysink.cover.runtime.SLFunction;
 
 public class CoverReference {
@@ -16,6 +17,13 @@ public class CoverReference {
     
     public CoverReference(CoverType type) {
         this.type = type;
+    }
+    
+    public CoverReference getArrayMember(int index) {
+        assert arrayIndex == null;
+        CoverType newType = new CoverType(BasicType.ARRAY_ELEMENT);
+        newType.setArrayType(type.getArrayType());
+        return new CoverReference(newType).setFrameSlot(frameSlot).setArrayIndex(index);
     }
     
     public CoverType getType() {

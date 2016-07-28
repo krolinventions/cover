@@ -1,8 +1,8 @@
 package com.realitysink.cover.nodes.local;
 
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
@@ -10,19 +10,21 @@ public class ArrayReferenceLiteralNode extends SLExpressionNode {
     @Child
     private SLExpressionNode index;
     
-    private final FrameSlot frameSlot;
+    private final CoverReference ref;
     
-    public ArrayReferenceLiteralNode(FrameSlot frameSlot, SLExpressionNode index) {
-        this.frameSlot = frameSlot;
+    public ArrayReferenceLiteralNode(CoverReference ref, SLExpressionNode index) {
+        this.ref = ref;
         this.index = index;
     }
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
+        int i;
         try {
-            return new ArrayReference(frameSlot, index.executeLong(frame));
+            i = (int) index.executeLong(frame);
         } catch (UnexpectedResultException e) {
             throw new CoverRuntimeException(this, e);
         }
+        return ref.getArrayMember(i);
     }
 }

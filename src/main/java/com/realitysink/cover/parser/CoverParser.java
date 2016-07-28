@@ -60,7 +60,7 @@ import com.realitysink.cover.nodes.local.CoverReadArrayValueNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteVariableNodeGen;
 import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
-import com.realitysink.cover.nodes.local.CoverFrameSlotLiteral;
+import com.realitysink.cover.nodes.local.CoverReferenceLiteral;
 import com.realitysink.cover.nodes.local.SLReadArgumentNode;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
@@ -397,14 +397,10 @@ public class CoverParser {
         if (ref == null) {
             throw new CoverParseException(expression, "identifier not found");
         }
-        if (!ref.getType().getIsArray()) {
+        if (ref.getType().getBasicType() != BasicType.ARRAY) {
             throw new CoverParseException(expression, "does not reference an array");
         }
-        FrameSlot frameSlot = ref.getFrameSlot();
-        if (frameSlot == null) {
-            throw new CoverParseException(expression, "currenlty only frameslot array expressions are supported");
-        }
-        return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript, null));
+        return CoverReadArrayValueNodeGen.create(new CoverReferenceLiteral(ref), processExpression(scope, subscript, null));
     }
 
     private SLExpressionNode processBinaryExpression(CoverScope scope, CPPASTBinaryExpression expression) {
@@ -493,9 +489,7 @@ public class CoverParser {
             CPPASTIdExpression x = (CPPASTIdExpression) node;
             CoverReference ref = scope.findReference(x.getRawSignature());
             if (ref == null) throw new CoverParseException(node, "not found");
-            FrameSlot frameSlot = ref.getFrameSlot();
-            if (frameSlot == null) throw new CoverParseException(node, "no frameslot");
-            return new CoverFrameSlotLiteral(frameSlot);
+            return new CoverReferenceLiteral(ref);
         } else if (node instanceof CPPASTArraySubscriptExpression) {
             CPPASTArraySubscriptExpression x = (CPPASTArraySubscriptExpression) node;
             ICPPASTExpression array = x.getArrayExpression();
@@ -504,9 +498,9 @@ public class CoverParser {
             if (ref == null) throw new CoverParseException(node, "not found");
             FrameSlot frameSlot = ref.getFrameSlot();
             if (frameSlot == null) throw new CoverParseException(node, "no frameslot");
-            if (ref.getType().getIsArray() == false)
+            if (ref.getType().getBasicType() != BasicType.ARRAY)
                 throw new CoverParseException(node, "is not an array");
-            return new ArrayReferenceLiteralNode(frameSlot, processExpression(scope, argument, null)); 
+            return new ArrayReferenceLiteralNode(ref, processExpression(scope, argument, null)); 
         }
         throw new CoverParseException(node, "unknown destination type: " + node.getClass().getSimpleName());
     }
@@ -536,6 +530,7 @@ public class CoverParser {
         return processDeclaration(scope, s);
     }
 
+    // FIXME: use processType in this function
     private SLStatementNode processDeclaration(CoverScope scope, CPPASTSimpleDeclaration node) {
         IASTDeclSpecifier declSpecifier = node.getDeclSpecifier();
         IASTDeclarator[] declarators = node.getDeclarators();
@@ -561,29 +556,31 @@ public class CoverParser {
             String typeName = scope.typedefTranslate(parts[parts.length-1]);
             
             if (declarator instanceof CPPASTArrayDeclarator) {
-                System.err.println(name+" declared as array");
                 // we don't support initializers yet, so keep it empty
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
+                    CoverType type;
                     if ("int".equals(typeName)) {
-                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
-                        CoverReference ref = scope.define(node, name, type);
-                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size)); // FIXME
+                        type = new CoverType(BasicType.LONG);
                     } else if ("long".equals(typeName)) {
-                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
-                        CoverReference ref = scope.define(node, name, type);
-                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size));
+                        type = new CoverType(BasicType.LONG);
                     } else if ("char".equals(typeName)) {
-                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
-                        CoverReference ref = scope.define(node, name, type);
-                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size)); // FIXME
+                        type = new CoverType(BasicType.LONG);
                     } else if ("double".equals(typeName)) {
-                        CoverType type = new CoverType(BasicType.DOUBLE).setIsArray(true);
-                        CoverReference ref = scope.define(node, name, type);
-                        nodes.add(new CreateLocalDoubleArrayNode(ref.getFrameSlot(), size)); // FIXME
+                        type = new CoverType(BasicType.DOUBLE);
                     } else {
                         throw new CoverParseException(node, "unsupported array type: " + typeName);
+                    }
+                    System.err.println(name+" declared as array of " + type.getBasicType());
+                    CoverType arrayType = new CoverType(BasicType.ARRAY).setArrayType(type);
+                    CoverReference ref = scope.define(node, name, arrayType);
+                    if (type.getBasicType() == BasicType.DOUBLE) {
+                        nodes.add(new CreateLocalDoubleArrayNode(ref.getFrameSlot(), size));
+                    } else if (type.getBasicType() == BasicType.LONG) {
+                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size));
+                    } else {
+                        throw new CoverParseException(node, "unsupported array type " + type.getBasicType());
                     }
                 } else {
                     throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
@@ -615,10 +612,10 @@ public class CoverParser {
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
                     SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(ref.getFrameSlot()), expression));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverReferenceLiteral(ref), expression));
                 } else {
                     // FIXME: initialize according to type
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(ref.getFrameSlot()), new SLLongLiteralNode(0)));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverReferenceLiteral(ref), new SLLongLiteralNode(0)));
                 }
             } else {
                 throw new CoverParseException(node, "unknown declarator type: " + declarators[i].getClass().getSimpleName());

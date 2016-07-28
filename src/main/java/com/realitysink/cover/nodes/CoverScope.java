@@ -46,11 +46,11 @@ public class CoverScope {
         if (type.getBasicType() != BasicType.FUNCTION) {
             // function references don't use frameslots, they use the SLFunction object itself
             FrameSlot slot = frameDescriptor.addFrameSlot(new Object());
-            slot.setKind(type.getFrameSlotKind());
+            slot.setKind(type.getFrameSlotKind(node));
             ref.setFrameSlot(slot);
         }
         definitions.put(identifier, ref);
-        System.err.println("defined " + identifier + " as " + type.getBasicType() + " array: " + type.getIsArray());
+        System.err.println("defined " + identifier + " as " + type.getBasicType());
         return ref;
     }
     

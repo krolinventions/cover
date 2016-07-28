@@ -16,5 +16,6 @@ Benchmarks Game](http://benchmarksgame.alioth.debian.org/). Currrently only the 
 mandelbrot_gcc9_modified.cover. | 
 | 2016-07-27 | 34.2       | Variable scope + malloc builtin |
 | 2016-07-28 | 38.1       | #include support |
+| 2016-07-28 | 250.7 (!)       | Parse-time type system. |
 
 For comparison, on this machine (i7 870, 2.93 GHz) the fastest single core C implementation is gcc9, and it runs in 14.7 seconds. The Java1 implementation needs 24.1 seconds.

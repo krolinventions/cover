@@ -2,8 +2,6 @@
 int _init() {
 	int argc = 0;
 	int argv[0];
-	printf("running main\n");
 	int result = main(argc, argv);
-	printf("result = %d\n", result);
 	return result;
 }
