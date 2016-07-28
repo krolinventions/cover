@@ -21,7 +21,10 @@ import com.realitysink.cover.builtins.CoverPutcBuiltinNodeGen;
 import com.realitysink.cover.builtins.SLPrintlnBuiltin;
 import com.realitysink.cover.builtins.SLPrintlnBuiltinFactory;
 import com.realitysink.cover.nodes.CoverNopExpression;
+import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.CoverScope;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverType.BasicType;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
@@ -128,7 +131,7 @@ public class CoverParser {
 
     public void parse() throws CoreException {
         parseRaw();
-        if (scope.findFunction("main") != null) {
+        if (scope.findReference("main") != null) {
             // add init function
             CoverParser parser;
             try {
@@ -389,7 +392,18 @@ public class CoverParser {
             CPPASTArraySubscriptExpression expression) {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
-        FrameSlot frameSlot = scope.findFrameSlotOrThrow(expression, array.getRawSignature());
+        
+        CoverReference ref = scope.findReference(array.getRawSignature()); // FIXME
+        if (ref == null) {
+            throw new CoverParseException(expression, "identifier not found");
+        }
+        if (!ref.getType().getIsArray()) {
+            throw new CoverParseException(expression, "does not reference an array");
+        }
+        FrameSlot frameSlot = ref.getFrameSlot();
+        if (frameSlot == null) {
+            throw new CoverParseException(expression, "currenlty only frameslot array expressions are supported");
+        }
         return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript, null));
     }
 
@@ -477,16 +491,21 @@ public class CoverParser {
             IASTExpression node) {
         if (node instanceof CPPASTIdExpression) {
             CPPASTIdExpression x = (CPPASTIdExpression) node;
-            FrameSlot frameSlot = scope.findFrameSlotOrThrow(node, x.getRawSignature());
+            CoverReference ref = scope.findReference(x.getRawSignature());
+            if (ref == null) throw new CoverParseException(node, "not found");
+            FrameSlot frameSlot = ref.getFrameSlot();
+            if (frameSlot == null) throw new CoverParseException(node, "no frameslot");
             return new CoverFrameSlotLiteral(frameSlot);
         } else if (node instanceof CPPASTArraySubscriptExpression) {
             CPPASTArraySubscriptExpression x = (CPPASTArraySubscriptExpression) node;
             ICPPASTExpression array = x.getArrayExpression();
             IASTExpression argument = (IASTExpression) x.getArgument();
-            FrameSlot frameSlot = scope.findFrameSlotOrThrow(node, array.getRawSignature());
-            if (frameSlot == null) {
-                throw new CoverParseException(node, "could not find local array " + array.getRawSignature());
-            }
+            CoverReference ref = scope.findReference(array.getRawSignature());
+            if (ref == null) throw new CoverParseException(node, "not found");
+            FrameSlot frameSlot = ref.getFrameSlot();
+            if (frameSlot == null) throw new CoverParseException(node, "no frameslot");
+            if (ref.getType().getIsArray() == false)
+                throw new CoverParseException(node, "is not an array");
             return new ArrayReferenceLiteralNode(frameSlot, processExpression(scope, argument, null)); 
         }
         throw new CoverParseException(node, "unknown destination type: " + node.getClass().getSimpleName());
@@ -524,7 +543,6 @@ public class CoverParser {
         for (int i=0;i<declarators.length;i++) {
             IASTDeclarator declarator = declarators[i];
             String name = declarator.getName().toString();
-            FrameSlot frameSlot = scope.addFrameSlot(node, name);
             
             // throw away "const"
             String rawTypeName = declSpecifier.getRawSignature();
@@ -545,18 +563,25 @@ public class CoverParser {
             if (declarator instanceof CPPASTArrayDeclarator) {
                 System.err.println(name+" declared as array");
                 // we don't support initializers yet, so keep it empty
-                frameSlot.setKind(FrameSlotKind.Object);
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
                     if ("int".equals(typeName)) {
-                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
+                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
+                        CoverReference ref = scope.define(node, name, type);
+                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size)); // FIXME
                     } else if ("long".equals(typeName)) {
-                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size));
+                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
+                        CoverReference ref = scope.define(node, name, type);
+                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size));
                     } else if ("char".equals(typeName)) {
-                        nodes.add(new CreateLocalLongArrayNode(frameSlot, size)); // FIXME
+                        CoverType type = new CoverType(BasicType.LONG).setIsArray(true);
+                        CoverReference ref = scope.define(node, name, type);
+                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size)); // FIXME
                     } else if ("double".equals(typeName)) {
-                        nodes.add(new CreateLocalDoubleArrayNode(frameSlot, size)); // FIXME
+                        CoverType type = new CoverType(BasicType.DOUBLE).setIsArray(true);
+                        CoverReference ref = scope.define(node, name, type);
+                        nodes.add(new CreateLocalDoubleArrayNode(ref.getFrameSlot(), size)); // FIXME
                     } else {
                         throw new CoverParseException(node, "unsupported array type: " + typeName);
                     }
@@ -570,28 +595,30 @@ public class CoverParser {
                     typeName = scope.typedefTranslate(namedTypeSpecifier.getName().toString());
                 }
                 IASTPointerOperator[] pointerOperators = d.getPointerOperators();
+                CoverType type;
                 if (pointerOperators.length > 0) {
                     warn(d, "pointer found: setting type to object, but should probably do smarter things");
-                    frameSlot.setKind(FrameSlotKind.Object);
+                    type = new CoverType(BasicType.OBJECT);
                 } else if ("int".equals(typeName)) {
-                    frameSlot.setKind(FrameSlotKind.Long);
+                    type = new CoverType(BasicType.LONG);
                 } else if ("long".equals(typeName)) {
-                    frameSlot.setKind(FrameSlotKind.Long);
+                    type = new CoverType(BasicType.LONG);
                 } else if ("char".equals(typeName)) {
-                    frameSlot.setKind(FrameSlotKind.Long);
+                    type = new CoverType(BasicType.LONG);
                 } else if ("double".equals(typeName)) {
-                    frameSlot.setKind(FrameSlotKind.Double);
+                    type = new CoverType(BasicType.DOUBLE);
                 } else {
                     throw new CoverParseException(node, "unsupported type: " + typeName);
                 }
                 //System.err.println(name+" declared as " + frameSlot.getKind());
+                CoverReference ref = scope.define(node, name, type);
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
                     SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(frameSlot), expression));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(ref.getFrameSlot()), expression));
                 } else {
                     // FIXME: initialize according to type
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(frameSlot), new SLLongLiteralNode(0)));
+                    nodes.add(CoverWriteVariableNodeGen.create(new CoverFrameSlotLiteral(ref.getFrameSlot()), new SLLongLiteralNode(0)));
                 }
             } else {
                 throw new CoverParseException(node, "unknown declarator type: " + declarators[i].getClass().getSimpleName());
@@ -665,23 +692,21 @@ public class CoverParser {
 
     private SLExpressionNode processId(CoverScope scope, CPPASTIdExpression id) {
         String name = id.getName().getRawSignature();
-
-        final FrameSlot frameSlot = scope.findFrameSlot(name);
-        if (frameSlot != null) {
-            /* Read of a local variable. */
-            // System.err.println(name + " is " + frameSlot.getKind().toString() + " slot is " + System.identityHashCode(frameSlot));
-            return SLReadLocalVariableNodeGen.create(frameSlot);
-        } else {
-            final SLFunction function = scope.findFunction(name);
-            if (function != null) {
-                return new CoverFunctionLiteralNode(function);
+        CoverReference ref = scope.findReference(name);
+        if (ref != null) {
+            if (ref.getFrameSlot() != null) {
+                return SLReadLocalVariableNodeGen.create(ref.getFrameSlot());
+            } else if (ref.getFunction() != null){
+                return new CoverFunctionLiteralNode(ref.getFunction());
             } else {
-                throw new CoverParseException(id, "ID not found in local scope");
+                throw new CoverParseException(id, "not a variable or function");
             }
+        } else {
+            throw new CoverParseException(id, "not found in local scope");
         }
     }
 
-    private SLExpressionNode processFunctionDefinition(CoverScope scope, CPPASTFunctionDefinition functionDefintion) {
+    private SLExpressionNode processFunctionDefinition(CoverScope scope, CPPASTFunctionDefinition node) {
         /*
            -CPPASTFunctionDefinition (offset: 1,81) -> void 
              -CPPASTSimpleDeclSpecifier (offset: 1,4) -> void
@@ -694,31 +719,24 @@ public class CoverParser {
              -CPPASTCompoundStatement (offset: 25,57) -> {
          */
         CoverScope newScope = new CoverScope(scope);
-        CPPASTFunctionDeclarator declarator = (CPPASTFunctionDeclarator) functionDefintion.getDeclarator();
+        CPPASTFunctionDeclarator declarator = (CPPASTFunctionDeclarator) node.getDeclarator();
         ICPPASTParameterDeclaration[] parameters = declarator.getParameters();
-        FrameSlot[] argumentArray = new FrameSlot[parameters.length];
         SLStatementNode[] readArgumentsStatements = new SLStatementNode[parameters.length];
         for (int i = 0;i<parameters.length;i++) {
             ICPPASTParameterDeclaration parameter = parameters[i];
             String name = parameter.getDeclarator().getName().getRawSignature();
-            String rawSignature = scope.typedefTranslate(parameter.getDeclSpecifier().getRawSignature());
-            FrameSlotKind kind = FrameSlotKind.Object;
-            if ("int".equals(rawSignature)) {
-                kind = FrameSlotKind.Long;
-            }
-            FrameSlot frameSlot = newScope.addFrameSlot(functionDefintion, name);
-            frameSlot.setKind(kind);
-            argumentArray[i] = frameSlot;
+            CoverType type = processType(scope, node, parameter.getDeclSpecifier());
+            CoverReference ref = newScope.define(node, name, type);
             
             // copy to local var in the prologue
             final SLReadArgumentNode readArg = new SLReadArgumentNode(i);
-            SLExpressionNode assignment = SLWriteLocalVariableNodeGen.create(readArg, frameSlot);
+            SLExpressionNode assignment = SLWriteLocalVariableNodeGen.create(readArg, ref.getFrameSlot());
             readArgumentsStatements[i] = assignment;
         }
         
         SLBlockNode readArgumentsNode = new SLBlockNode(readArgumentsStatements);
         
-        IASTStatement s = functionDefintion.getBody();
+        IASTStatement s = node.getBody();
         SLStatementNode blockNode = processStatement(newScope, s);
         SLBlockNode wrappedBodyNode = new SLBlockNode(new SLStatementNode[] {readArgumentsNode, blockNode});
         final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(wrappedBodyNode);
@@ -733,8 +751,33 @@ public class CoverParser {
         RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
         function.setCallTarget(callTarget);
         
-        scope.addFunction(functionName, function);
+        CoverReference reference = scope.define(node, functionName, new CoverType(BasicType.FUNCTION));
+        reference.setFunction(function);
         return new CoverNopExpression();
+    }
+
+    private CoverType processType(CoverScope scope, CPPASTFunctionDefinition node, IASTDeclSpecifier declSpecifier) {
+        String rawTypeName = declSpecifier.getRawSignature();
+        String parts[] = rawTypeName.split(" ");
+        if (parts.length > 1) {
+            if (parts[0].equals("typedef")) {
+                throw new CoverParseException(node, "type definition is actually a typedef!");
+            }
+            if (!parts[0].equals("const")) {
+                throw new CoverParseException(node, "unknown declaration type: " + parts[0]);
+            } else {
+                warn(node, "ignoring const");
+            }
+        }
+        String untranslatedTypeName = scope.typedefTranslate(parts[parts.length-1]); // FIXME: make this a real lookup!
+        String typeName = scope.typedefTranslate(untranslatedTypeName);
+        switch (typeName) {
+        case "char": return new CoverType(BasicType.LONG);
+        case "int": return new CoverType(BasicType.LONG);
+        case "long": return new CoverType(BasicType.LONG);
+        case "double": return new CoverType(BasicType.DOUBLE);
+        default: throw new CoverParseException(node, "unknown basic type " + typeName);
+        }
     }
 
     private SourceSection createSourceSectionForNode(String identifier, IASTNode expression) {

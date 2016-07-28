@@ -8,13 +8,13 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.realitysink.cover.nodes.CoverType.BasicType;
 import com.realitysink.cover.parser.CoverParseException;
 import com.realitysink.cover.runtime.SLFunction;
 
 public class CoverScope {
     private FrameDescriptor frameDescriptor = new FrameDescriptor();
-    private Map<String,SLFunction> functions = new HashMap<String, SLFunction>();
-    private Map<String,FrameSlot> variables = new HashMap<String, FrameSlot>();
+    private Map<String,CoverReference> definitions = new HashMap<String, CoverReference>();
     private Map<String,String> typedefs = new HashMap<String, String>();
     private CoverScope parent;
     
@@ -24,58 +24,36 @@ public class CoverScope {
             this.frameDescriptor = parent.frameDescriptor;
         }
     }
-    public Map<String, SLFunction> getFunctions() {
-        return functions;
-    }
-    public void setFunctions(Map<String, SLFunction> functions) {
-        this.functions = functions;
-    }
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
     }
-    public FrameSlot findFrameSlotOrThrow(IASTNode node, String identifier) {
-        FrameSlot slot = findFrameSlot(identifier);
-        if (slot == null) {
-            throw new CoverParseException(node, "could not find variable " + identifier);
-        }
-        return slot;
-    }
-    public FrameSlot findFrameSlot(String identifier) {
-        FrameSlot frameSlot = variables.get(identifier);
-        if (frameSlot != null) {
-            //System.err.println("found " + identifier + " in this = " + this + " slot is " + System.identityHashCode(frameSlot));
-            return frameSlot;
+    
+    public CoverReference findReference(String identifier) {
+        CoverReference definition = definitions.get(identifier);
+        if (definition != null) {
+            return definition;
         } else if (parent != null) {
-            //System.err.println("searching for " + identifier + " in parent scope. this = " + this);
-            return parent.findFrameSlot(identifier);
-        }
-        return null;
-    }
-
-    public SLFunction findFunction(String identifier) {
-        SLFunction function = functions.get(identifier);
-        if (function != null) {
-            return function;
-        } else if (parent != null) {
-            return parent.findFunction(identifier);
+            return parent.findReference(identifier);
         }
         return null;
     }
     
-    public FrameSlot addFrameSlot(IASTNode node, String identifier) {
-        if (variables.containsKey(identifier)) {
+    public CoverReference define(IASTNode node, String identifier, CoverType type) {
+        if (definitions.containsKey(identifier)) {
             throw new CoverParseException(node, "identifier already exists in this scope");
         }
-        // We just use an new Object() as identifier, as it just has to be unique.
-        // If we use the name itself we run into trouble with variable scopes.
-        FrameSlot slot = frameDescriptor.addFrameSlot(new Object());
-        variables.put(identifier, slot);
-        return slot;
+        CoverReference ref = new CoverReference(type); 
+        if (type.getBasicType() != BasicType.FUNCTION) {
+            // function references don't use frameslots, they use the SLFunction object itself
+            FrameSlot slot = frameDescriptor.addFrameSlot(new Object());
+            slot.setKind(type.getFrameSlotKind());
+            ref.setFrameSlot(slot);
+        }
+        definitions.put(identifier, ref);
+        System.err.println("defined " + identifier + " as " + type.getBasicType() + " array: " + type.getIsArray());
+        return ref;
     }
     
-    public void addFunction(String functionName, SLFunction function) {
-        functions.put(functionName, function);        
-    }
     public void addTypeDef(String oldType, String newType) {
         System.err.println("adding new type " + newType + " (" + oldType + ")");
         typedefs.put(newType, typedefTranslate(oldType));
