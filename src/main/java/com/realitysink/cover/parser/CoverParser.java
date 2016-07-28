@@ -128,7 +128,7 @@ public class CoverParser {
 
     public void parse() throws CoreException {
         parseRaw();
-        if (scope.findFunction(null, "main") != null) {
+        if (scope.findFunction("main") != null) {
             // add init function
             CoverParser parser;
             try {
@@ -389,7 +389,7 @@ public class CoverParser {
             CPPASTArraySubscriptExpression expression) {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
-        FrameSlot frameSlot = scope.findFrameSlot(expression, array.getRawSignature());
+        FrameSlot frameSlot = scope.findFrameSlotOrThrow(expression, array.getRawSignature());
         return CoverReadArrayValueNodeGen.create(new CoverFrameSlotLiteral(frameSlot), processExpression(scope, subscript, null));
     }
 
@@ -477,13 +477,13 @@ public class CoverParser {
             IASTExpression node) {
         if (node instanceof CPPASTIdExpression) {
             CPPASTIdExpression x = (CPPASTIdExpression) node;
-            FrameSlot frameSlot = scope.findFrameSlot(node, x.getRawSignature());
+            FrameSlot frameSlot = scope.findFrameSlotOrThrow(node, x.getRawSignature());
             return new CoverFrameSlotLiteral(frameSlot);
         } else if (node instanceof CPPASTArraySubscriptExpression) {
             CPPASTArraySubscriptExpression x = (CPPASTArraySubscriptExpression) node;
             ICPPASTExpression array = x.getArrayExpression();
             IASTExpression argument = (IASTExpression) x.getArgument();
-            FrameSlot frameSlot = scope.findFrameSlot(node, array.getRawSignature());
+            FrameSlot frameSlot = scope.findFrameSlotOrThrow(node, array.getRawSignature());
             if (frameSlot == null) {
                 throw new CoverParseException(node, "could not find local array " + array.getRawSignature());
             }
@@ -631,7 +631,7 @@ public class CoverParser {
 
     private SLExpressionNode processFunctionCall(CoverScope scope, IASTNode node, String requestedType) {
         CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
-        String name = functionCall.getFunctionNameExpression().getRawSignature();
+        String rawName = functionCall.getFunctionNameExpression().getRawSignature();
 
         List<SLExpressionNode> coverArguments = new ArrayList<>();
         for (IASTInitializerClause x : functionCall.getArguments()) {
@@ -643,37 +643,42 @@ public class CoverParser {
         }
         SLExpressionNode[] argumentArray = coverArguments.toArray(new SLExpressionNode[coverArguments.size()]);
         
-        if ("puts".equals(name)) {
+        if ("puts".equals(rawName)) {
             NodeFactory<SLPrintlnBuiltin> printlnBuiltinFactory = SLPrintlnBuiltinFactory.getInstance();
             return printlnBuiltinFactory.createNode(argumentArray, CoverLanguage.INSTANCE.findContext());
-        } else if ("printf".equals(name)) {
+        } else if ("printf".equals(rawName)) {
             return new CoverPrintfBuiltin(argumentArray);
-        } else if ("fwrite".equals(name)) {
+        } else if ("fwrite".equals(rawName)) {
             return CoverFWriteBuiltinNodeGen.create(argumentArray[0], argumentArray[1], argumentArray[2], argumentArray[3]);
-        } else if ("putc".equals(name)) {
+        } else if ("putc".equals(rawName)) {
             return CoverPutcBuiltinNodeGen.create(argumentArray[0], argumentArray[1]);
-        } else if ("malloc".equals(name)) {
+        } else if ("malloc".equals(rawName)) {
             info(node, "inserting malloc for type " + requestedType);
             return new CoverNewArrayNode(requestedType, argumentArray[0]);
-        } else if ("free".equals(name)) {
+        } else if ("free".equals(rawName)) {
             return new CoverNopExpression();
         } else {
-            return new SLInvokeNode(new CoverFunctionLiteralNode(scope.findFunction(node, name)), argumentArray);
+            SLExpressionNode function = processExpression(scope, functionCall.getFunctionNameExpression(), null);
+            return new SLInvokeNode(function, argumentArray);
         }
     }
 
     private SLExpressionNode processId(CoverScope scope, CPPASTIdExpression id) {
         String name = id.getName().getRawSignature();
-        final SLExpressionNode result;
-        final FrameSlot frameSlot = scope.findFrameSlot(id, name);
+
+        final FrameSlot frameSlot = scope.findFrameSlot(name);
         if (frameSlot != null) {
             /* Read of a local variable. */
             // System.err.println(name + " is " + frameSlot.getKind().toString() + " slot is " + System.identityHashCode(frameSlot));
-            result = SLReadLocalVariableNodeGen.create(frameSlot);
+            return SLReadLocalVariableNodeGen.create(frameSlot);
         } else {
-            throw new CoverParseException(id, "ID not found in local scope");
+            final SLFunction function = scope.findFunction(name);
+            if (function != null) {
+                return new CoverFunctionLiteralNode(function);
+            } else {
+                throw new CoverParseException(id, "ID not found in local scope");
+            }
         }
-        return result; 
     }
 
     private SLExpressionNode processFunctionDefinition(CoverScope scope, CPPASTFunctionDefinition functionDefintion) {

@@ -33,39 +33,31 @@ public class CoverScope {
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
     }
-    public FrameSlot findFrameSlot(IASTNode node, String identifier) {
-        FrameSlot slot = findFrameSlotInternal(identifier);
+    public FrameSlot findFrameSlotOrThrow(IASTNode node, String identifier) {
+        FrameSlot slot = findFrameSlot(identifier);
         if (slot == null) {
             throw new CoverParseException(node, "could not find variable " + identifier);
         }
         return slot;
     }
-    private FrameSlot findFrameSlotInternal(String identifier) {
+    public FrameSlot findFrameSlot(String identifier) {
         FrameSlot frameSlot = variables.get(identifier);
         if (frameSlot != null) {
             //System.err.println("found " + identifier + " in this = " + this + " slot is " + System.identityHashCode(frameSlot));
             return frameSlot;
         } else if (parent != null) {
             //System.err.println("searching for " + identifier + " in parent scope. this = " + this);
-            return parent.findFrameSlotInternal(identifier);
+            return parent.findFrameSlot(identifier);
         }
         return null;
     }
 
-    public SLFunction findFunction(IASTNode node, String identifier) {
-        SLFunction function = findFunctionInternal(identifier);
-        if (function == null) {
-            throw new CoverParseException(node, "could not find function " + identifier);
-        }
-        return function;
-    }
-    
-    private SLFunction findFunctionInternal(String identifier) {
+    public SLFunction findFunction(String identifier) {
         SLFunction function = functions.get(identifier);
         if (function != null) {
             return function;
         } else if (parent != null) {
-            return parent.findFunctionInternal(identifier);
+            return parent.findFunction(identifier);
         }
         return null;
     }

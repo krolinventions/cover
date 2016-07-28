@@ -106,7 +106,7 @@ public final class CoverLanguage extends TruffleLanguage<SLContext> {
             throw new IOException(ex);
         }
 
-        return scope.findFunction(null, "_init").getCallTarget();
+        return scope.findFunction("_init").getCallTarget();
     }
 
     @Override
