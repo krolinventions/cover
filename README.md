@@ -6,7 +6,7 @@ Cover is licensed under the UPL licence.
 
 ## FAQ
 
-* *How fast is it?* For some programs it runs at 50% of the speed of C, for others it is as slow as PHP. See [Performance](PERFORMANCE.md) for details.
+* *How fast is it?* For the *mandelbrot* benchmark Cover reaches 70% of the speed of C. See [Performance](PERFORMANCE.md) for details.
 * *Can I use this for real world projects?* No, as only just the parts of C needed to run some toy programs have been implemented. 
 
 ## Design

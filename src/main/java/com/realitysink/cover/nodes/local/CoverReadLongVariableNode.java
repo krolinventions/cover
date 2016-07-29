@@ -48,23 +48,9 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
-/**
- * Node to read a local variable from a function's {@link VirtualFrame frame}. The Truffle frame API
- * allows to store primitive values of all Java primitive types, and Object values. This means that
- * all SL types that are objects are handled by the {@link #readObject} method.
- * <p>
- * We use the primitive type only when the same primitive type is uses for all writes. If the local
- * variable is type-polymorphic, then the value is always stored as an Object, i.e., primitive
- * values are boxed. Even a mixture of {@code long} and {@code boolean} writes leads to both being
- * stored boxed.
- */
 @NodeField(name = "slot", type = FrameSlot.class)
 public abstract class CoverReadLongVariableNode extends CoverTypedExpressionNode {
 
-    /**
-     * Returns the descriptor of the accessed local variable. The implementation of this method is
-     * created by the Truffle DSL based on the {@link NodeField} annotation on the class.
-     */
     protected abstract FrameSlot getSlot();
 
     @Specialization

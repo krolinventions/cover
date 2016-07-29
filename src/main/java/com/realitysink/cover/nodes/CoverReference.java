@@ -19,13 +19,6 @@ public class CoverReference {
         this.type = type;
     }
     
-    public CoverReference getArrayMember(int index) {
-        assert arrayIndex == null;
-        CoverType newType = new CoverType(BasicType.ARRAY_ELEMENT);
-        newType.setArrayType(type.getTypeOfArrayContents());
-        return new CoverReference(newType).setFrameSlot(frameSlot).setArrayIndex(index);
-    }
-    
     public CoverType getType() {
         return type;
     }

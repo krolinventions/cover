@@ -40,29 +40,25 @@
  */
 package com.realitysink.cover.nodes.local;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.CoverRuntimeException;
 
-@NodeChildren({@NodeChild("array"), @NodeChild("index"), @NodeChild("value")})
-@NodeInfo(shortName="=")
-public abstract class CoverWriteLongArrayElementNode extends CoverTypedExpressionNode {
+@NodeField(name = "slot", type = FrameSlot.class)
+public abstract class CoverReadArrayVariableNode extends CoverTypedExpressionNode {
+
+    protected abstract FrameSlot getSlot();
+
     @Specialization
-    protected long writeLongArrayElement(VirtualFrame frame, long[] array, long index, long value) {
-        try {
-            array[(int) index] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + index + " out of bounds");
-        }
-        return value;
+    protected Object readLong(VirtualFrame frame) {
+        return FrameUtil.getObjectSafe(frame, getSlot());
     }
-
+    
     public CoverType getType() {
-        return CoverType.LONG;
+        return CoverType.ARRAY;
     }
 }

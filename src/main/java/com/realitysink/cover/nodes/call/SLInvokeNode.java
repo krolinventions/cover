@@ -101,6 +101,6 @@ public final class SLInvokeNode extends CoverTypedExpressionNode {
 
     @Override
     public CoverType getType() {
-        return CoverType.VOID; // FIXME: should be the return type of the function!
+        return CoverType.LONG; // FIXME: should be the return type of the function!
     }
 }

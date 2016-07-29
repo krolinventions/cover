@@ -18,7 +18,7 @@
 typedef intptr_t intnative_t;
 #endif
 
-int main(int argc, char ** argv){
+int main(){
    int argv_1 = 16000;
 #ifndef __GNUC__
    int stdout = 0;
@@ -51,7 +51,9 @@ int main(int argc, char ** argv){
       initial_i[xy]=2.0/image_Width_And_Height*xy - 1.0;
       //printf("initial values for %d: %f, %f\n", xy, initial_r[xy], initial_i[xy]);
    }
-
+   
+   double pixel_Group_r[8], pixel_Group_i[8];
+         
    #pragma omp parallel for schedule(guided)
    for(int y=0; y<image_Width_And_Height; y++){
       double prefetched_Initial_i=initial_i[y];
@@ -60,7 +62,6 @@ int main(int argc, char ** argv){
          // pixel_Group_r and pixel_Group_i will store real and imaginary
          // values for each pixel in the current pixel group as we perform
          // iterations. Set their initial values here.
-         double pixel_Group_r[8], pixel_Group_i[8];
          for(int x_Minor=0; x_Minor<8; x_Minor++){
             pixel_Group_r[x_Minor]=initial_r[x_Major+x_Minor];
             pixel_Group_i[x_Minor]=prefetched_Initial_i;

@@ -18,5 +18,7 @@ mandelbrot_gcc9_modified.cover. |
 | 2016-07-28 | 38.1       | #include support |
 | 2016-07-28 | 250.7 (!)  | Parse-time type system. |
 | 2016-07-28 | 249.7 (!)  | All expressions are now typed. |
+| 2016-07-29 | 21.3       | Don't use CoverReferences at runtime, just emit the correct write nodes directly. |
+| 2016-07-29 | 20.1       | Move local array definition out of the loop. |
 
 For comparison, on this machine (i7 870, 2.93 GHz) the fastest single core C implementation is gcc9, and it runs in 14.7 seconds. The Java1 implementation needs 24.1 seconds.

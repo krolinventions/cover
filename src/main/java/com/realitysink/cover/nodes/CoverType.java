@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.realitysink.cover.parser.CoverParseException;
 
@@ -32,6 +33,7 @@ public class CoverType {
     public static CoverType BOOLEAN = new CoverType(BasicType.BOOLEAN);
     public static CoverType FUNCTION = new CoverType(BasicType.FUNCTION);
     public static CoverType STRING = new CoverType(BasicType.STRING);
+    public static CoverType ARRAY = new CoverType(BasicType.ARRAY);
     
     private BasicType basicType;
     
@@ -77,6 +79,7 @@ public class CoverType {
     }
 
     public FrameSlotKind getFrameSlotKind(IASTNode node) {
+        CompilerAsserts.neverPartOfCompilation();
         switch (basicType) {
         case LONG: return FrameSlotKind.Long;
         case DOUBLE: return FrameSlotKind.Double;
@@ -103,6 +106,7 @@ public class CoverType {
     }
 
     public boolean isPrimitiveType(IASTNode node) {
+        CompilerAsserts.neverPartOfCompilation();
         switch (basicType) {
         case LONG: return true;
         case DOUBLE: return true;
@@ -117,6 +121,7 @@ public class CoverType {
     }
 
     public boolean canAccept(CoverType type) {
+        CompilerAsserts.neverPartOfCompilation();
         if (isPrimitiveType(null) && getBasicType() == type.getBasicType()) {
             return true; // FIXME, array types!
         }
@@ -130,6 +135,7 @@ public class CoverType {
     }
 
     public CoverType combine(IASTNode node, CoverType other) {
+        CompilerAsserts.neverPartOfCompilation();
         if (this.equals(other)) {
             return this;
         }
@@ -144,6 +150,7 @@ public class CoverType {
 
     @Override
     public int hashCode() {
+        CompilerAsserts.neverPartOfCompilation();
         final int prime = 31;
         int result = 1;
         result = prime * result + ((arrayType == null) ? 0 : arrayType.hashCode());
@@ -156,6 +163,7 @@ public class CoverType {
 
     @Override
     public boolean equals(Object obj) {
+        CompilerAsserts.neverPartOfCompilation();
         if (this == obj)
             return true;
         if (obj == null)

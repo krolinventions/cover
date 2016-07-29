@@ -45,23 +45,19 @@ import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
-@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
+@NodeChildren({@NodeChild("array"), @NodeChild("index"), @NodeChild("value")})
 @NodeInfo(shortName="=")
 public abstract class CoverWriteDoubleArrayElementNode extends CoverTypedExpressionNode {
-    
     @Specialization
-    protected double writeLongArrayElement(VirtualFrame frame, CoverReference ref, double value) {
-        double[] array = (double[]) frame.getValue(ref.getFrameSlot());
+    protected double writeLongArrayElement(VirtualFrame frame, double[] array, long index, double value) {
         try {
-            array[ref.getArrayIndex()] = value;
+            array[(int) index] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
+            throw new CoverRuntimeException(this, "index " + index + " out of bounds");
         }
         return value;
     }
