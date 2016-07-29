@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2016 Gerard Krol.
+ */
 package com.realitysink.cover.parser;
 
 import java.io.IOException;
@@ -10,7 +13,6 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
@@ -34,7 +36,6 @@ import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
-import com.realitysink.cover.nodes.expression.ArrayLiteralNode;
 import com.realitysink.cover.nodes.expression.CoverAddDoubleNodeGen;
 import com.realitysink.cover.nodes.expression.CoverAddLongNode;
 import com.realitysink.cover.nodes.expression.CoverAddLongNodeGen;
@@ -62,7 +63,6 @@ import com.realitysink.cover.nodes.expression.SLForceBooleanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLogicalAndNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
-import com.realitysink.cover.nodes.expression.SLSubNodeGen;
 import com.realitysink.cover.nodes.local.CoverNewArrayNode;
 import com.realitysink.cover.nodes.local.CoverReadArrayVariableNode;
 import com.realitysink.cover.nodes.local.CoverReadArrayVariableNodeGen;
@@ -73,15 +73,10 @@ import com.realitysink.cover.nodes.local.CoverReadLongArrayValueNodeGen;
 import com.realitysink.cover.nodes.local.CoverReadLongVariableNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteDoubleArrayElementNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteDoubleNodeGen;
-import com.realitysink.cover.nodes.local.CoverWriteDoubleVariableNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLongArrayElementNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLongNodeGen;
-import com.realitysink.cover.nodes.local.CoverWriteLongVariableNodeGen;
 import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
-import com.realitysink.cover.nodes.local.SLReadArgumentNode;
-import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
-import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
 import com.realitysink.cover.runtime.SLFunction;
 
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;

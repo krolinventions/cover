@@ -2,6 +2,6 @@
 int _init() {
 	int argc = 0;
 	int argv[0];
-	int result = main(argc, argv);
+	int result = main();
 	return result;
 }
