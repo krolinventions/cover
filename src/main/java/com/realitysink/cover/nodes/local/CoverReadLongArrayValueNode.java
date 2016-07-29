@@ -7,13 +7,14 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.realitysink.cover.nodes.CoverReference;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
-@NodeChildren({@NodeChild("frameSlot"),@NodeChild("expressionNode")})
-public abstract class CoverReadArrayValueNode extends SLExpressionNode {
-    
-    @Specialization(guards="isLongArray(ref)")
+@NodeChildren({@NodeChild("ref"),@NodeChild("expressionNode")})
+public abstract class CoverReadLongArrayValueNode extends CoverTypedExpressionNode {
+    @Specialization
     public long readLong(VirtualFrame frame, CoverReference ref, long index) {
         long[] array;
         Object object;
@@ -30,20 +31,8 @@ public abstract class CoverReadArrayValueNode extends SLExpressionNode {
         return array[(int) index];
     }
     
-    @Specialization(guards="isDoubleArray(ref)")
-    public double readDouble(VirtualFrame frame, CoverReference ref, long index) {
-        double[] array;
-        Object object;
-        try {
-            object = frame.getObject(ref.getFrameSlot());
-        } catch (FrameSlotTypeException e1) {
-            throw new CoverRuntimeException(this, e1);
-        }
-        try {
-            array = (double[]) object;
-        } catch (ClassCastException e1) {
-            throw new CoverRuntimeException(this, e1);
-        }
-        return array[(int) index];
-    }
+    @Override
+    public CoverType getType() {
+        return CoverType.LONG;
+    }    
 }

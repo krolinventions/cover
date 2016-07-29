@@ -52,16 +52,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.realitysink.cover.nodes.access.SLReadPropertyNodeGen;
 import com.realitysink.cover.nodes.access.SLWritePropertyNodeGen;
-import com.realitysink.cover.nodes.expression.SLAddNodeGen;
-import com.realitysink.cover.nodes.expression.SLDivNodeGen;
-import com.realitysink.cover.nodes.expression.SLEqualNodeGen;
-import com.realitysink.cover.nodes.expression.SLLessOrEqualNodeGen;
-import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
-import com.realitysink.cover.nodes.expression.SLLogicalAndNodeGen;
-import com.realitysink.cover.nodes.expression.SLLogicalNotNodeGen;
-import com.realitysink.cover.nodes.expression.SLLogicalOrNodeGen;
-import com.realitysink.cover.nodes.expression.SLMulNodeGen;
-import com.realitysink.cover.nodes.expression.SLSubNodeGen;
 import com.realitysink.cover.nodes.local.SLReadLocalVariableNodeGen;
 import com.realitysink.cover.nodes.local.SLWriteLocalVariableNodeGen;
 import com.realitysink.cover.nodes.SLExpressionNode;
@@ -74,7 +64,6 @@ import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLBreakNode;
 import com.realitysink.cover.nodes.controlflow.SLContinueNode;
 import com.realitysink.cover.nodes.controlflow.SLDebuggerNode;
-import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
@@ -313,53 +302,53 @@ public class SLNodeFactory {
      * @return A subclass of SLExpressionNode using the given parameters based on the given opToken.
      */
     public SLExpressionNode createBinary(Token opToken, SLExpressionNode leftNode, SLExpressionNode rightNode) {
-        final SLExpressionNode result;
-        switch (opToken.val) {
-            case "+":
-                result = SLAddNodeGen.create(leftNode, rightNode);
-                break;
-            case "*":
-                result = SLMulNodeGen.create(leftNode, rightNode);
-                break;
-            case "/":
-                result = SLDivNodeGen.create(leftNode, rightNode);
-                break;
-            case "-":
-                result = SLSubNodeGen.create(leftNode, rightNode);
-                break;
-            case "<":
-                result = SLLessThanNodeGen.create(leftNode, rightNode);
-                break;
-            case "<=":
-                result = SLLessOrEqualNodeGen.create(leftNode, rightNode);
-                break;
-            case ">":
-                result = SLLogicalNotNodeGen.create(SLLessOrEqualNodeGen.create(leftNode, rightNode));
-                break;
-            case ">=":
-                result = SLLogicalNotNodeGen.create(SLLessThanNodeGen.create(leftNode, rightNode));
-                break;
-            case "==":
-                result = SLEqualNodeGen.create(leftNode, rightNode);
-                break;
-            case "!=":
-                result = SLLogicalNotNodeGen.create(SLEqualNodeGen.create(leftNode, rightNode));
-                break;
-            case "&&":
-                result = SLLogicalAndNodeGen.create(leftNode, rightNode);
-                break;
-            case "||":
-                result = SLLogicalOrNodeGen.create(leftNode, rightNode);
-                break;
-            default:
-                throw new RuntimeException("unexpected operation: " + opToken.val);
-        }
+//        final SLExpressionNode result;
+//        switch (opToken.val) {
+//            case "+":
+//                //result = SLAddNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "*":
+//                result = SLMulNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "/":
+//                result = SLDivNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "-":
+//                result = SLSubNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "<":
+//                result = SLLessThanNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "<=":
+//                result = SLLessOrEqualNodeGen.create(leftNode, rightNode);
+//                break;
+//            case ">":
+//                result = SLLogicalNotNodeGen.create(SLLessOrEqualNodeGen.create(leftNode, rightNode));
+//                break;
+//            case ">=":
+//                result = SLLogicalNotNodeGen.create(SLLessThanNodeGen.create(leftNode, rightNode));
+//                break;
+//            case "==":
+//                result = SLEqualNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "!=":
+//                result = SLLogicalNotNodeGen.create(SLEqualNodeGen.create(leftNode, rightNode));
+//                break;
+//            case "&&":
+//                result = SLLogicalAndNodeGen.create(leftNode, rightNode);
+//                break;
+//            case "||":
+//                result = SLLogicalOrNodeGen.create(leftNode, rightNode);
+//                break;
+//            default:
+//                throw new RuntimeException("unexpected operation: " + opToken.val);
+//        }
+//
+//        int start = leftNode.getSourceSection().getCharIndex();
+//        int length = rightNode.getSourceSection().getCharEndIndex() - start;
+//        result.setSourceSection(source.createSection(opToken.val, start, length));
 
-        int start = leftNode.getSourceSection().getCharIndex();
-        int length = rightNode.getSourceSection().getCharEndIndex() - start;
-        result.setSourceSection(source.createSection(opToken.val, start, length));
-
-        return result;
+        return null;
     }
 
     /**

@@ -40,27 +40,24 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.SLFunction;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
-    
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
+/**
+ * This class is similar to the {@link SLLessThanNode}.
+ */
+@NodeInfo(shortName = "<=")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverLessOrEqualLongNode extends CoverTypedExpressionNode {
+    @Specialization
+    protected boolean lessOrEqual(long left, long right) {
+        return left <= right;
     }
-
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
+        return CoverType.BOOLEAN;
     }
 }

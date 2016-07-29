@@ -40,41 +40,26 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 /**
- * This class is similar to the extensively documented {@link SLAddNode}. Divisions by 0 throw the
- * same {@link ArithmeticException exception} as in Java, SL has no special handling for it to keep
- * the code simple.
+ * This class is similar to the extensively documented {@link SLAddNode}.
  */
-@NodeInfo(shortName = "/")
-public abstract class SLDivNode extends SLBinaryNode {
-
-    @Specialization(rewriteOn = ArithmeticException.class)
-    protected long div(long left, long right) throws ArithmeticException {
-        long result = left / right;
-        /*
-         * The division overflows if left is Long.MIN_VALUE and right is -1.
-         */
-        if ((left & right & result) < 0) {
-            throw new ArithmeticException("long overflow");
-        }
-        return result;
-    }
+@NodeInfo(shortName = "*")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverMulLongNode extends CoverTypedExpressionNode {
 
     @Specialization
-    protected double div(double left, double right) {
-        return left / right;
+    protected long mul(long left, long right) {
+        return left * right;
     }
-    
-    @Specialization
-    @TruffleBoundary
-    protected BigInteger div(BigInteger left, BigInteger right) {
-        return left.divide(right);
+
+    public CoverType getType() {
+        return CoverType.LONG;
     }
 }

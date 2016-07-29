@@ -40,27 +40,42 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import java.math.BigInteger;
+
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
+import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 import com.realitysink.cover.runtime.SLFunction;
+import com.realitysink.cover.runtime.SLNull;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
-    
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
+/**
+ * The {@code ==} operator of SL is defined on all types. Therefore, we need a
+ * {@link #equal(Object, Object) implementation} that can handle all possible types. But since
+ * {@code ==} can only return {@code true} when the type of the left and right operand are the same,
+ * the specializations already cover all possible cases that can return {@code true} and the generic
+ * case is trivial.
+ * <p>
+ * Note that we do not need the analogous {@code !=} operator, because we can just
+ * {@link SLLogicalNotNode negate} the {@code ==} operator.
+ */
+@NodeInfo(shortName = "==")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverEqualDoubleNode extends CoverTypedExpressionNode {
+
+    @Specialization
+    protected boolean equal(double left, double right) {
+        // FIXME: warn if these are not whole numbers!
+        // throw new CoverRuntimeException(this, "Really? Are you comparing doubles using == ?");
+        return left == right;
     }
 
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
+        return CoverType.BOOLEAN;
     }
 }

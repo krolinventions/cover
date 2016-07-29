@@ -38,29 +38,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.nodes.local;
 
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.SLFunction;
+import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
+@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
+@NodeInfo(shortName="=")
+public abstract class CoverWriteLongArrayElementNode extends CoverTypedExpressionNode {
     
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
+    @Specialization
+    protected long writeLongArrayElement(VirtualFrame frame, CoverReference ref, long value) {
+        long[] array = (long[]) frame.getValue(ref.getFrameSlot());
+        try {
+            array[ref.getArrayIndex()] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
+        }
+        return value;
     }
 
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
+        return CoverType.LONG;
     }
 }

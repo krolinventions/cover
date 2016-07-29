@@ -45,8 +45,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.Instrumentable;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.realitysink.cover.nodes.CoverType.BasicType;
-import com.realitysink.cover.nodes.SLExpressionNodeWrapper;
 import com.realitysink.cover.nodes.SLTypesGen;
 
 /**
@@ -58,7 +56,6 @@ import com.realitysink.cover.nodes.SLTypesGen;
 @NodeInfo(description = "The abstract base node for all expressions")
 @Instrumentable(factory = SLExpressionNodeWrapper.class)
 public abstract class SLExpressionNode extends SLStatementNode {
-
     /**
      * The execute method when no specialization is possible. This is the most general case,
      * therefore it must be provided by all subclasses.
@@ -91,68 +88,4 @@ public abstract class SLExpressionNode extends SLStatementNode {
     public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
         return SLTypesGen.expectBoolean(executeGeneric(frame));
     }
-
-    protected boolean isLong(CoverReference ref) {
-        return ref.getType().getBasicType() == BasicType.LONG;
-    }
-
-    protected boolean isDouble(CoverReference ref) {
-        return ref.getType().getBasicType() == BasicType.DOUBLE;
-    }
-
-    protected boolean isObject(CoverReference ref) {
-        return !ref.getType().isUnboxed(null);
-    }
-
-    protected boolean isNotBoxed(Object value) {
-        if (value instanceof Long) return false;
-        if (value instanceof Double) return false;
-        return true;
-    }
-
-    protected boolean isLongArrayElement(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY_ELEMENT && ref.getType().getArrayType().getBasicType() == BasicType.LONG) {
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean isDoubleArrayElement(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY_ELEMENT && ref.getType().getArrayType().getBasicType() == BasicType.DOUBLE) {
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean isObjectArrayElement(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY_ELEMENT) {
-            if (!ref.getType().getArrayType().isUnboxed(null)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    protected boolean isLongArray(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY && ref.getType().getArrayType().getBasicType() == BasicType.LONG) {
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean isDoubleArray(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY && ref.getType().getArrayType().getBasicType() == BasicType.DOUBLE) {
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean isObjectArray(CoverReference ref) {
-        if (ref.getType().getBasicType() == BasicType.ARRAY) {
-            if (!ref.getType().getArrayType().isUnboxed(null)) {
-                return true;
-            }
-        }
-        return false;
-    }    
 }

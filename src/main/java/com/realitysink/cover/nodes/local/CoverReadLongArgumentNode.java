@@ -38,35 +38,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.nodes.local;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
+import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.runtime.CoverRuntimeException;
+import com.realitysink.cover.runtime.SLNull;
+import com.realitysink.cover.slparser.SLNodeFactory;
 
 /**
- * This class is similar to the extensively documented {@link SLAddNode}. The only difference: the
- * specialized methods return {@code boolean} instead of the input types.
+ * Reads a function argument. Arguments are passed in as an object array.
+ * <p>
+ * Arguments are not type-specialized. To ensure that repeated accesses within a method are
+ * specialized and can, e.g., be accessed without unboxing, all arguments are loaded into local
+ * variables {@link SLNodeFactory#addFormalParameter in the method prologue}.
  */
-@NodeInfo(shortName = "<")
-public abstract class SLLessThanNode extends SLBinaryNode {
+public abstract class CoverReadLongArgumentNode extends CoverTypedExpressionNode {
 
-    @Specialization
-    protected boolean lessThan(long left, long right) {
-        return left < right;
+    /** The argument number, i.e., the index into the array of arguments. */
+    private final int index;
+
+    /**
+     * Profiling information, collected by the interpreter, capturing whether the function was
+     * called with fewer actual arguments than formal arguments.
+     */
+    private final BranchProfile outOfBoundsTaken = BranchProfile.create();
+
+    public CoverReadLongArgumentNode(int index) {
+        this.index = index;
     }
 
     @Specialization
-    protected boolean lessThan(double left, double right) {
-        return left < right;
+    public long getLong(VirtualFrame frame) {
+        Object[] args = frame.getArguments();
+        if (index < args.length) {
+            return (long) args[index];
+        } else {
+            /* In the interpreter, record profiling information that the branch was used. */
+            outOfBoundsTaken.enter();
+            /* Use the default null value. */
+            throw new CoverRuntimeException(this, "parameter index out of bounds");
+        }
     }
-
-    @Specialization
-    @TruffleBoundary
-    protected boolean lessThan(BigInteger left, BigInteger right) {
-        return left.compareTo(right) < 0;
+    
+    public CoverType getType() {
+        return CoverType.LONG;
     }
 }

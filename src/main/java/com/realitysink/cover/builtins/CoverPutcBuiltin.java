@@ -47,12 +47,14 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
 @NodeInfo(shortName = "putch")
 @NodeChildren({@NodeChild("argument"), @NodeChild("file")})
-public abstract class CoverPutcBuiltin extends SLExpressionNode {
+public abstract class CoverPutcBuiltin extends CoverTypedExpressionNode {
 
     @Specialization
     public long putch(long c, long file) {
@@ -70,4 +72,9 @@ public abstract class CoverPutcBuiltin extends SLExpressionNode {
             throw new CoverRuntimeException(this, e);
         }
     }
+    
+    @Override
+    public CoverType getType() {
+        return CoverType.VOID;
+    }    
 }

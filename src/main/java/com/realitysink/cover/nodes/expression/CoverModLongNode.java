@@ -40,27 +40,23 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.SLFunction;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
+@NodeInfo(shortName = "%")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverModLongNode extends CoverTypedExpressionNode {
+
+    @Specialization
+    protected long div(long left, long right) throws ArithmeticException {
+        return left % right;
+    }
     
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
-    }
-
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
+        return CoverType.LONG;
     }
 }

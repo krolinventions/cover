@@ -25,7 +25,7 @@ import com.realitysink.cover.nodes.CoverReference;
 import com.realitysink.cover.nodes.CoverScope;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverType.BasicType;
-import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
@@ -34,30 +34,45 @@ import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
+import com.realitysink.cover.nodes.expression.CoverAddDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverAddLongNode;
+import com.realitysink.cover.nodes.expression.CoverAddLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverDivDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverDivLongNodeGen;
 import com.realitysink.cover.nodes.expression.CoverDoubleLiteralNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
-import com.realitysink.cover.nodes.expression.SLAddNode;
-import com.realitysink.cover.nodes.expression.SLAddNodeGen;
+import com.realitysink.cover.nodes.expression.CoverLessOrEqualDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverLessOrEqualLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverLessThanDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverLessThanLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverModDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverModLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverMulDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverMulLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverSubDoubleNodeGen;
+import com.realitysink.cover.nodes.expression.CoverSubLongNodeGen;
 import com.realitysink.cover.nodes.expression.SLBinaryAndNodeGen;
 import com.realitysink.cover.nodes.expression.SLBinaryNotNodeGen;
 import com.realitysink.cover.nodes.expression.SLBinaryOrNodeGen;
 import com.realitysink.cover.nodes.expression.SLBinaryShiftLeftNodeGen;
 import com.realitysink.cover.nodes.expression.SLBinaryShiftRightNodeGen;
-import com.realitysink.cover.nodes.expression.SLDivNodeGen;
 import com.realitysink.cover.nodes.expression.SLEqualNodeGen;
 import com.realitysink.cover.nodes.expression.SLForceBooleanNodeGen;
-import com.realitysink.cover.nodes.expression.SLLessOrEqualNodeGen;
-import com.realitysink.cover.nodes.expression.SLLessThanNodeGen;
 import com.realitysink.cover.nodes.expression.SLLogicalAndNodeGen;
 import com.realitysink.cover.nodes.expression.SLLongLiteralNode;
-import com.realitysink.cover.nodes.expression.SLModNodeGen;
-import com.realitysink.cover.nodes.expression.SLMulNodeGen;
 import com.realitysink.cover.nodes.expression.SLStringLiteralNode;
 import com.realitysink.cover.nodes.expression.SLSubNodeGen;
 import com.realitysink.cover.nodes.local.CoverNewArrayNode;
 import com.realitysink.cover.nodes.local.ArrayReferenceLiteralNode;
-import com.realitysink.cover.nodes.local.CoverReadArrayValueNodeGen;
-import com.realitysink.cover.nodes.local.CoverWriteVariableNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadDoubleArrayValueNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadDoubleVariableNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadLongArgumentNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadLongArrayValueNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadLongVariableNodeGen;
+import com.realitysink.cover.nodes.local.CoverWriteDoubleArrayElementNodeGen;
+import com.realitysink.cover.nodes.local.CoverWriteDoubleVariableNodeGen;
+import com.realitysink.cover.nodes.local.CoverWriteLongArrayElementNodeGen;
+import com.realitysink.cover.nodes.local.CoverWriteLongVariableNodeGen;
 import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
 import com.realitysink.cover.nodes.local.CoverReferenceLiteral;
@@ -186,7 +201,11 @@ public class CoverParser {
         String spaces = "";
         for (int i = 0; i < level; i++)
             spaces += "  ";
-        System.err.println(spaces + n2.getClass().getName());
+        if (n2 instanceof CoverTypedExpressionNode) {
+            System.err.println(spaces + n2.getClass().getName() + " " + ((CoverTypedExpressionNode)n2).getType());
+        } else {
+            System.err.println(spaces + n2.getClass().getName());
+        }
         for (Node n : n2.getChildren()) {
             printTruffleNodes(n, level + 1);
         }
@@ -263,7 +282,7 @@ public class CoverParser {
         CoverScope ifScope = new CoverScope(scope);
         CoverScope thenScope = new CoverScope(ifScope);
         CoverScope elseScope = new CoverScope(ifScope);
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(SLForceBooleanNodeGen.create(processExpression(ifScope, node.getConditionExpression(), null)));
+        CoverTypedExpressionNode conditionNode = SLForceBooleanNodeGen.create(SLForceBooleanNodeGen.create(processExpression(ifScope, node.getConditionExpression(), null)));
         SLStatementNode thenPartNode = processStatement(thenScope, node.getThenClause());
         SLStatementNode elsePartNode = null;
         if (node.getElseClause() != null) {
@@ -277,7 +296,7 @@ public class CoverParser {
         CoverScope scope2 = new CoverScope(scope);
         CoverScope conditionScope = new CoverScope(scope);
         // a do {} while() loop is just a while loop with the body prepended
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(conditionScope, node.getCondition(), null));
+        CoverTypedExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(conditionScope, node.getCondition(), null));
         SLStatementNode bodyNode1 = processStatement(scope1, node.getBody());
         SLStatementNode bodyNode2 = processStatement(scope2, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode2);
@@ -312,8 +331,8 @@ public class CoverParser {
         IASTExpression condition = node.getConditionExpression();
         IASTExpression iteration = node.getIterationExpression();
         SLStatementNode initializerNode = processStatement(initializerScope, initializer);
-        SLExpressionNode conditionNode = processExpression(conditionScope, condition, null);
-        SLExpressionNode iterationNode = processExpression(iterationScope, iteration, null);
+        CoverTypedExpressionNode conditionNode = processExpression(conditionScope, condition, null);
+        CoverTypedExpressionNode iterationNode = processExpression(iterationScope, iteration, null);
         SLStatementNode bodyNode = processStatement(bodyScope, node.getBody());
         /*
          * We turn this:
@@ -355,17 +374,17 @@ public class CoverParser {
            -CPPASTLiteralExpression (offset: 38,2) -> 10
          -CPPASTCompoundStatement (offset: 42,32) -> {
          */
-        SLExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition(), null));
+        CoverTypedExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition(), null));
         SLStatementNode bodyNode = processStatement(scope, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
         return whileNode;
     }
 
-    private SLExpressionNode processExpression(CoverScope scope, IASTExpression expression, String requestedType) {
+    private CoverTypedExpressionNode processExpression(CoverScope scope, IASTExpression expression, String requestedType) {
         if (expression == null) {
             throw new CoverParseException(null, "null expression");
         }
-        SLExpressionNode result;
+        CoverTypedExpressionNode result;
         if (expression instanceof CPPASTBinaryExpression) {
             result = processBinaryExpression(scope, (CPPASTBinaryExpression) expression);
         } else if (expression instanceof CPPASTLiteralExpression) {
@@ -377,7 +396,7 @@ public class CoverParser {
         } else if (expression instanceof CPPASTFunctionCallExpression) {
             result = processFunctionCall(scope, expression, requestedType);
         } else if (expression instanceof CPPASTUnaryExpression) {
-            result = (SLExpressionNode) processUnary(scope, (CPPASTUnaryExpression) expression);
+            result = processUnary(scope, (CPPASTUnaryExpression) expression);
         } else if (expression instanceof CPPASTCastExpression) {
             warn(expression, "ignoring cast");
             result = processExpression(scope, ((CPPASTCastExpression)expression).getOperand(), null);
@@ -388,7 +407,7 @@ public class CoverParser {
         return result;
     }
 
-    private SLExpressionNode processArraySubscriptExpression(CoverScope scope,
+    private CoverTypedExpressionNode processArraySubscriptExpression(CoverScope scope,
             CPPASTArraySubscriptExpression expression) {
         ICPPASTExpression array = expression.getArrayExpression();
         IASTExpression subscript = expression.getSubscriptExpression();
@@ -400,82 +419,88 @@ public class CoverParser {
         if (ref.getType().getBasicType() != BasicType.ARRAY) {
             throw new CoverParseException(expression, "does not reference an array");
         }
-        return CoverReadArrayValueNodeGen.create(new CoverReferenceLiteral(ref), processExpression(scope, subscript, null));
+        if (ref.getType().getTypeOfArrayContents().getBasicType() == BasicType.LONG) {
+            return CoverReadLongArrayValueNodeGen.create(new CoverReferenceLiteral(ref), processExpression(scope, subscript, null));
+        } else if (ref.getType().getTypeOfArrayContents().getBasicType() == BasicType.DOUBLE) {
+            return CoverReadDoubleArrayValueNodeGen.create(new CoverReferenceLiteral(ref), processExpression(scope, subscript, null));
+        } else {
+            throw new CoverParseException(expression, "unsupported array type " + ref.getType().getTypeOfArrayContents().getBasicType());
+        }
     }
 
-    private SLExpressionNode processBinaryExpression(CoverScope scope, CPPASTBinaryExpression expression) {
+    private CoverTypedExpressionNode processBinaryExpression(CoverScope scope, CPPASTBinaryExpression expression) {
         int operator = expression.getOperator();
-        SLExpressionNode result;
+        CoverTypedExpressionNode result;
         if (operator == CPPASTBinaryExpression.op_lessThan) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLLessThanNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createLessThanNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_lessEqual) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLLessOrEqualNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createLessOrEqualNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_equals) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLEqualNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_greaterThan) {
             // FIXME: this messes with evaluation order!
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLLessThanNodeGen.create(rightNode, leftNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createLessThanNode(expression, rightNode, leftNode);
         } else if (operator == CPPASTBinaryExpression.op_plusAssign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
-            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
-            result = CoverWriteVariableNodeGen.create(destination, SLAddNodeGen.create(source, change));
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(expression, destination, createAddNode(expression, source, change));
         } else if (operator == CPPASTBinaryExpression.op_assign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode value = processExpression(scope, expression.getOperand2(), null);
-            result = CoverWriteVariableNodeGen.create(destination, value);
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode value = processExpression(scope, expression.getOperand2(), null);
+            result = createWriteVariableNode(expression, destination, value);
         } else if (operator == CPPASTBinaryExpression.op_multiply) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLMulNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createMulNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_divide) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLDivNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createDivNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_plus) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLAddNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createAddNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_minus) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLSubNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createSubNode(expression, leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_logicalAnd) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLLogicalAndNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_binaryAndAssign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
-            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
-            result = CoverWriteVariableNodeGen.create(destination, SLBinaryAndNodeGen.create(source, change));
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(expression, destination, SLBinaryAndNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_shiftRightAssign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
-            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
-            result = CoverWriteVariableNodeGen.create(destination, SLBinaryShiftRightNodeGen.create(source, change));
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(expression, destination, SLBinaryShiftRightNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_shiftLeftAssign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
-            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
-            result = CoverWriteVariableNodeGen.create(destination, SLBinaryShiftLeftNodeGen.create(source, change));
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(expression, destination, SLBinaryShiftLeftNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_binaryOrAssign) {
-            SLExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
-            SLExpressionNode change = processExpression(scope, expression.getOperand2(), null);
-            SLExpressionNode source = processExpression(scope, expression.getOperand1(), null);
-            result = CoverWriteVariableNodeGen.create(destination, SLBinaryOrNodeGen.create(source, change));
+            CoverTypedExpressionNode destination = processExpressionAsDestination(scope, expression.getOperand1());
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(expression, destination, SLBinaryOrNodeGen.create(source, change));
         } else if (operator == CPPASTBinaryExpression.op_modulo) {
-            SLExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
-            SLExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
-            result = SLModNodeGen.create(leftNode, rightNode);
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createModNode(expression, leftNode, rightNode);
         } else {
             throw new CoverParseException(expression, "unknown operator type " + operator);
         }
@@ -483,7 +508,114 @@ public class CoverParser {
         return result;
     }
 
-    private SLExpressionNode processExpressionAsDestination(CoverScope scope,
+    private CoverTypedExpressionNode createSubNode(CPPASTBinaryExpression expression, CoverTypedExpressionNode leftNode, CoverTypedExpressionNode rightNode) {
+        CoverType newType = leftNode.getType().combine(expression, rightNode.getType());
+        if (newType.equals(CoverType.LONG)) {
+            return CoverSubLongNodeGen.create(leftNode, rightNode);
+        } else if (newType.equals(CoverType.DOUBLE)) {
+            return CoverSubDoubleNodeGen.create(leftNode, rightNode);
+        } else {
+            throw new CoverParseException(expression, "cannot multiply type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createMulNode(CPPASTBinaryExpression expression,
+            CoverTypedExpressionNode leftNode, CoverTypedExpressionNode rightNode) {
+        CoverType newType = leftNode.getType().combine(expression, rightNode.getType());
+        if (newType.equals(CoverType.LONG)) {
+            return CoverMulLongNodeGen.create(leftNode, rightNode);
+        } else if (newType.equals(CoverType.DOUBLE)) {
+            return CoverMulDoubleNodeGen.create(leftNode, rightNode);
+        } else {
+            throw new CoverParseException(expression, "cannot multiply type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createModNode(CPPASTBinaryExpression expression,
+            CoverTypedExpressionNode leftNode, CoverTypedExpressionNode rightNode) {
+        CoverType newType = leftNode.getType().combine(expression, rightNode.getType());
+        if (newType.equals(CoverType.LONG)) {
+            return CoverModLongNodeGen.create(leftNode, rightNode);
+        } else if (newType.equals(CoverType.DOUBLE)) {
+            return CoverModDoubleNodeGen.create(leftNode, rightNode);
+        } else {
+            throw new CoverParseException(expression, "cannot mod type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createLessOrEqualNode(CPPASTBinaryExpression expression,
+            CoverTypedExpressionNode leftNode, CoverTypedExpressionNode rightNode) {
+        CoverType newType = leftNode.getType().combine(expression, rightNode.getType());
+        if (newType.equals(CoverType.DOUBLE)) {
+            return CoverLessOrEqualDoubleNodeGen.create(leftNode, rightNode);
+        } else if (newType.equals(CoverType.LONG)) {
+            return CoverLessOrEqualLongNodeGen.create(leftNode, rightNode);
+        } else {
+            throw new CoverParseException(expression, "cannot add type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createLessThanNode(CPPASTBinaryExpression expression,
+            CoverTypedExpressionNode leftNode, CoverTypedExpressionNode rightNode) {
+        CoverType newType = leftNode.getType().combine(expression, rightNode.getType());
+        if (newType.equals(CoverType.DOUBLE)) {
+            return CoverLessThanDoubleNodeGen.create(leftNode, rightNode);
+        } else if (newType.equals(CoverType.LONG)) {
+            return CoverLessThanLongNodeGen.create(leftNode, rightNode);
+        } else {
+            throw new CoverParseException(expression, "cannot add type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createDivNode(CPPASTBinaryExpression node,
+            CoverTypedExpressionNode left, CoverTypedExpressionNode right) {
+        CoverType newType = left.getType().combine(node, right.getType());
+        if (newType.equals(CoverType.DOUBLE)) {
+            return CoverDivDoubleNodeGen.create(left, right);
+        } else if (newType.equals(CoverType.LONG)) {
+            return CoverDivLongNodeGen.create(left, right);
+        } else {
+            throw new CoverParseException(node, "cannot add type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createAddNode(CPPASTBinaryExpression node, CoverTypedExpressionNode left,
+            CoverTypedExpressionNode right) {
+        CoverType newType = left.getType().combine(node, right.getType());
+        if (newType.equals(CoverType.DOUBLE)) {
+            return CoverAddDoubleNodeGen.create(left, right);
+        } else if (newType.equals(CoverType.LONG)) {
+            return CoverAddLongNodeGen.create(left, right);
+        } else {
+            throw new CoverParseException(node, "cannot add type " + newType);
+        }
+    }
+
+    private CoverTypedExpressionNode createWriteVariableNode(IASTNode node, CoverTypedExpressionNode destination, CoverTypedExpressionNode value) {
+        if (!destination.getType().canAccept(value.getType())) {
+            printTruffleNodes(destination, 1);
+            printTruffleNodes(value, 1);
+            throw new CoverParseException(node, destination.getType().toString() + " cannot accept type " + value.getType());
+        }
+        info(node, destination.getType().getBasicType().toString());
+        if (destination.getType().getBasicType() == BasicType.LONG) {
+            return CoverWriteLongVariableNodeGen.create(destination, value);
+        } else if (destination.getType().getBasicType() == BasicType.DOUBLE) {
+            return CoverWriteDoubleVariableNodeGen.create(destination, value);
+        } else if (destination.getType().getBasicType() == BasicType.ARRAY_ELEMENT) {
+            if (destination.getType().getTypeOfArrayContents().getBasicType() == BasicType.LONG) {
+                return CoverWriteLongArrayElementNodeGen.create(destination, value);
+            } else if (destination.getType().getTypeOfArrayContents().getBasicType() == BasicType.DOUBLE) {
+                return CoverWriteDoubleArrayElementNodeGen.create(destination, value);
+            } else {
+                throw new CoverParseException(node, "unsupported write array reference");
+            }
+        } else {
+            throw new CoverParseException(node, "unsupported type " + destination.getType());
+        }
+    }
+
+    private CoverTypedExpressionNode processExpressionAsDestination(CoverScope scope,
             IASTExpression node) {
         if (node instanceof CPPASTIdExpression) {
             CPPASTIdExpression x = (CPPASTIdExpression) node;
@@ -505,7 +637,7 @@ public class CoverParser {
         throw new CoverParseException(node, "unknown destination type: " + node.getClass().getSimpleName());
     }
 
-    private SLStatementNode processUnary(CoverScope scope, CPPASTUnaryExpression node) {
+    private CoverTypedExpressionNode processUnary(CoverScope scope, CPPASTUnaryExpression node) {
         int operator = node.getOperator();
         final int change;
         if (operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_prefixIncr) {
@@ -521,8 +653,8 @@ public class CoverParser {
         }
         
         // build assign(name, addnode(name, 1))
-        SLAddNode addNode = SLAddNodeGen.create(processExpression(scope, node.getOperand(), null), new SLLongLiteralNode(change));
-        return CoverWriteVariableNodeGen.create(processExpressionAsDestination(scope, node.getOperand()), addNode);
+        CoverAddLongNode addNode = CoverAddLongNodeGen.create(processExpression(scope, node.getOperand(), null), new SLLongLiteralNode(change));
+        return createWriteVariableNode(node, processExpressionAsDestination(scope, node.getOperand()), addNode);
     }
 
     private SLStatementNode processDeclarationStatement(CoverScope scope, CPPASTDeclarationStatement node) {
@@ -558,7 +690,7 @@ public class CoverParser {
             if (declarator instanceof CPPASTArrayDeclarator) {
                 // we don't support initializers yet, so keep it empty
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
-                SLExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
+                CoverTypedExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
                     CoverType type;
                     if ("int".equals(typeName)) {
@@ -611,11 +743,11 @@ public class CoverParser {
                 CoverReference ref = scope.define(node, name, type);
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
-                    SLExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverReferenceLiteral(ref), expression));
+                    CoverTypedExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
+                    nodes.add(createWriteVariableNode(d, new CoverReferenceLiteral(ref), expression));
                 } else {
                     // FIXME: initialize according to type
-                    nodes.add(CoverWriteVariableNodeGen.create(new CoverReferenceLiteral(ref), new SLLongLiteralNode(0)));
+                    nodes.add(createWriteVariableNode(d, new CoverReferenceLiteral(ref), new SLLongLiteralNode(0)));
                 }
             } else {
                 throw new CoverParseException(node, "unknown declarator type: " + declarators[i].getClass().getSimpleName());
@@ -632,7 +764,7 @@ public class CoverParser {
         System.err.println(nodeMessage(node, "info: " + message));
     }
 
-    private SLExpressionNode processLiteral(CoverScope scope, CPPASTLiteralExpression y) {
+    private CoverTypedExpressionNode processLiteral(CoverScope scope, CPPASTLiteralExpression y) {
         if (y.getKind() == IASTLiteralExpression.lk_string_literal) {
             String v = new String(y.getValue());
             String noQuotes = v.substring(1, v.length() - 1).replace("\\n", "\n");
@@ -653,11 +785,11 @@ public class CoverParser {
         }
     }
 
-    private SLExpressionNode processFunctionCall(CoverScope scope, IASTNode node, String requestedType) {
+    private CoverTypedExpressionNode processFunctionCall(CoverScope scope, IASTNode node, String requestedType) {
         CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
         String rawName = functionCall.getFunctionNameExpression().getRawSignature();
 
-        List<SLExpressionNode> coverArguments = new ArrayList<>();
+        List<CoverTypedExpressionNode> coverArguments = new ArrayList<>();
         for (IASTInitializerClause x : functionCall.getArguments()) {
             if (x instanceof IASTExpression) {
                 coverArguments.add(processExpression(scope, (IASTExpression) x, null));
@@ -665,7 +797,7 @@ public class CoverParser {
                 throw new CoverParseException(node, "Unknown function argument type: " + x.getClass());
             }
         }
-        SLExpressionNode[] argumentArray = coverArguments.toArray(new SLExpressionNode[coverArguments.size()]);
+        CoverTypedExpressionNode[] argumentArray = coverArguments.toArray(new CoverTypedExpressionNode[coverArguments.size()]);
         
         if ("puts".equals(rawName)) {
             NodeFactory<SLPrintlnBuiltin> printlnBuiltinFactory = SLPrintlnBuiltinFactory.getInstance();
@@ -682,17 +814,25 @@ public class CoverParser {
         } else if ("free".equals(rawName)) {
             return new CoverNopExpression();
         } else {
-            SLExpressionNode function = processExpression(scope, functionCall.getFunctionNameExpression(), null);
+            CoverTypedExpressionNode function = processExpression(scope, functionCall.getFunctionNameExpression(), null);
             return new SLInvokeNode(function, argumentArray);
         }
     }
 
-    private SLExpressionNode processId(CoverScope scope, CPPASTIdExpression id) {
+    private CoverTypedExpressionNode processId(CoverScope scope, CPPASTIdExpression id) {
         String name = id.getName().getRawSignature();
         CoverReference ref = scope.findReference(name);
         if (ref != null) {
             if (ref.getFrameSlot() != null) {
-                return SLReadLocalVariableNodeGen.create(ref.getFrameSlot());
+                if (ref.getType().getBasicType().equals(BasicType.LONG)) {
+                    return CoverReadLongVariableNodeGen.create(ref.getFrameSlot());
+                } else if (ref.getType().getBasicType().equals(BasicType.DOUBLE)) {
+                    return CoverReadDoubleVariableNodeGen.create(ref.getFrameSlot());
+                } else if (ref.getType().getBasicType().equals(BasicType.ARRAY)) {
+                    return new CoverReferenceLiteral(ref);
+                } else {
+                    throw new CoverParseException(id, "unsupported variable read " + ref.getType());
+                }
             } else if (ref.getFunction() != null){
                 return new CoverFunctionLiteralNode(ref.getFunction());
             } else {
@@ -703,7 +843,7 @@ public class CoverParser {
         }
     }
 
-    private SLExpressionNode processFunctionDefinition(CoverScope scope, CPPASTFunctionDefinition node) {
+    private CoverTypedExpressionNode processFunctionDefinition(CoverScope scope, CPPASTFunctionDefinition node) {
         /*
            -CPPASTFunctionDefinition (offset: 1,81) -> void 
              -CPPASTSimpleDeclSpecifier (offset: 1,4) -> void
@@ -726,8 +866,13 @@ public class CoverParser {
             CoverReference ref = newScope.define(node, name, type);
             
             // copy to local var in the prologue
-            final SLReadArgumentNode readArg = new SLReadArgumentNode(i);
-            SLExpressionNode assignment = SLWriteLocalVariableNodeGen.create(readArg, ref.getFrameSlot());
+            final CoverTypedExpressionNode readArg;
+            if (type.getBasicType() == BasicType.LONG) {
+                readArg = CoverReadLongArgumentNodeGen.create(i);
+            } else {
+                throw new CoverParseException(node, "unsupported argument type");
+            }
+            CoverTypedExpressionNode assignment = createWriteVariableNode(node, new CoverReferenceLiteral(ref), readArg);
             readArgumentsStatements[i] = assignment;
         }
         

@@ -46,66 +46,19 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverReference;
-import com.realitysink.cover.nodes.SLExpressionNode;
-import com.realitysink.cover.runtime.CoverRuntimeException;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 @NodeChildren({@NodeChild("destination"), @NodeChild("value")})
 @NodeInfo(shortName="=")
-public abstract class CoverWriteVariableNode extends SLExpressionNode {
-    
-    @Specialization(guards="isLongArrayElement(ref)")
-    protected long writeLongArrayElement(VirtualFrame frame, CoverReference ref, long value) {
-        long[] array = (long[]) frame.getValue(ref.getFrameSlot());
-        try {
-            array[ref.getArrayIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
-        }
-        return value;
-    }
-    
-    @Specialization(guards="isDoubleArrayElement(ref)")
-    protected double writeDoubleArrayElement(VirtualFrame frame, CoverReference ref, double value) {
-        double[] array;
-        try {
-            array = (double[]) frame.getValue(ref.getFrameSlot());
-        } catch (ClassCastException e1) {
-            throw new CoverRuntimeException(this, e1);
-        }
-        try {
-            array[ref.getArrayIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
-        }
-        return value;
-    }
-    
-    @Specialization(guards="isObjectArrayElement(ref)")
-    protected Object writeObjectArrayElement(VirtualFrame frame, CoverReference ref, Object value) {
-        Object[] array = (Object[]) frame.getValue(ref.getFrameSlot());
-        try {
-            array[ref.getArrayIndex()] = value;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new CoverRuntimeException(this, "index " + ref.getArrayIndex() + " out of bounds");
-        }
-        return value;
-    }
-    
-    @Specialization(guards = "isLong(ref)")
-    protected long writeLong(VirtualFrame frame, CoverReference ref, long value) {
-        frame.setLong(ref.getFrameSlot(), value);
-        return value;
-    }
-
-    @Specialization(guards = "isDouble(ref)")
-    protected double writeDouble(VirtualFrame frame, CoverReference ref, double value) {
+public abstract class CoverWriteDoubleVariableNode extends CoverTypedExpressionNode {
+    @Specialization
+    protected double writeLong(VirtualFrame frame, CoverReference ref, double value) {
         frame.setDouble(ref.getFrameSlot(), value);
         return value;
     }
-
-    @Specialization(guards = {"isObject(ref)", "isNotBoxed(value)"})
-    protected Object write(VirtualFrame frame, CoverReference ref, Object value) {
-        frame.setObject(ref.getFrameSlot(), value);
-        return value;
+    
+    public CoverType getType() {
+        return CoverType.DOUBLE;
     }
 }

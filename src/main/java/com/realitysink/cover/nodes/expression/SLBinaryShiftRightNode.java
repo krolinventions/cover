@@ -40,23 +40,23 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 @NodeInfo(shortName = ">>")
-public abstract class SLBinaryShiftRightNode extends SLBinaryNode {
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class SLBinaryShiftRightNode extends CoverTypedExpressionNode {
     @Specialization
     protected long and(long left, long right) {
         return left >> right;
     }
     
-    @Specialization
-    @TruffleBoundary
-    protected BigInteger and(BigInteger left, BigInteger right) {
-        return left.shiftRight(right.intValue());
-    }
+    @Override
+    public CoverType getType() {
+        return CoverType.LONG;
+    }    
 }

@@ -45,10 +45,12 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
 @NodeInfo(shortName = "printf")
-public class CoverPrintfBuiltin extends SLExpressionNode {
+public class CoverPrintfBuiltin extends CoverTypedExpressionNode {
     @Children
     private final SLExpressionNode[] arguments;
 
@@ -73,5 +75,10 @@ public class CoverPrintfBuiltin extends SLExpressionNode {
     private static void doPrintf(String formatString, Object[] printfArguments) {
         String fixed = formatString.replace("%jd", "%d");
         System.out.format(fixed,printfArguments);
+    }
+
+    @Override
+    public CoverType getType() {
+        return CoverType.VOID;
     }
 }

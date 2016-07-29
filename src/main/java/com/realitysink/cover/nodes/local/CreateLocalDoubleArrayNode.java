@@ -41,7 +41,6 @@
 package com.realitysink.cover.nodes.local;
 
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.realitysink.cover.nodes.SLExpressionNode;
@@ -60,11 +59,13 @@ public class CreateLocalDoubleArrayNode extends SLStatementNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
+        int s;
         try {
-            frame.setObject(frameSlot, new double[(int) size.executeLong(frame)]);
+            s = (int) size.executeLong(frame);
         } catch (UnexpectedResultException e) {
             throw new CoverRuntimeException(this, e);
         }
-        frameSlot.setKind(FrameSlotKind.Object);
+        //System.err.println("creating double array of size " + s + " in " + frameSlot);
+        frame.setObject(frameSlot, new double[s]);
     }
 }

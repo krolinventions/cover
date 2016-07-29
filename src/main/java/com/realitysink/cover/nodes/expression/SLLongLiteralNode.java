@@ -43,6 +43,8 @@ package com.realitysink.cover.nodes.expression;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
 /**
@@ -51,7 +53,7 @@ import com.realitysink.cover.nodes.SLExpressionNode;
  * the primitive value is automatically boxed by Java.
  */
 @NodeInfo(shortName = "const")
-public final class SLLongLiteralNode extends SLExpressionNode {
+public final class SLLongLiteralNode extends CoverTypedExpressionNode {
 
     private final long value;
 
@@ -72,5 +74,10 @@ public final class SLLongLiteralNode extends SLExpressionNode {
     @Override
     public Object executeGeneric(VirtualFrame frame) {
         return value;
+    }
+
+    @Override
+    public CoverType getType() {
+        return CoverType.LONG;
     }
 }

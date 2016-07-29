@@ -46,7 +46,12 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverReference;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
@@ -55,11 +60,17 @@ import com.realitysink.cover.runtime.CoverRuntimeException;
  */
 @NodeInfo(shortName = "fwrite")
 @NodeChildren({@NodeChild("ptr"), @NodeChild("size"), @NodeChild("count"), @NodeChild("stream")})
-public abstract class CoverFWriteBuiltin extends SLExpressionNode {
+public abstract class CoverFWriteBuiltin extends CoverTypedExpressionNode {
 
     // FIXME: should take a byte[] directly!
     @Specialization
-    public Object fwrite(Object[] ptr, long size, long count, long stream) {
+    public Object fwrite(VirtualFrame frame, CoverReference ref, long size, long count, long stream) {
+        long[] ptr;
+        try {
+            ptr = (long[]) frame.getObject(ref.getFrameSlot());
+        } catch (FrameSlotTypeException e) {
+            throw new CoverRuntimeException(this, "invalid ptr argument");
+        }
         long totalSize = size * count;
         byte[] bytes = new byte[(int) totalSize];
         for (int i=0;i<totalSize;i++) {
@@ -89,5 +100,10 @@ public abstract class CoverFWriteBuiltin extends SLExpressionNode {
         } catch (IOException e) {
             throw new CoverRuntimeException(this, e);
         }
+    }
+
+    @Override
+    public CoverType getType() {
+        return CoverType.VOID;
     }
 }

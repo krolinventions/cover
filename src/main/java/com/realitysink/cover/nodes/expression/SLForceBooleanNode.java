@@ -43,13 +43,18 @@ package com.realitysink.cover.nodes.expression;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLExpressionNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 @NodeChild("valueNode")
 @NodeInfo(shortName = "!!")
-public abstract class SLForceBooleanNode extends SLExpressionNode {
+public abstract class SLForceBooleanNode extends CoverTypedExpressionNode {
     @Specialization
     protected boolean doBoolean(boolean value) {
         return value;
+    }
+    @Override
+    public CoverType getType() {
+        return CoverType.BOOLEAN;
     }
 }

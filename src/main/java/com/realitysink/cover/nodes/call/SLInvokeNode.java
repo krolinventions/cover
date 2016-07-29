@@ -46,6 +46,8 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.call.SLDispatchNodeGen;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.SLFunction;
 
@@ -57,7 +59,7 @@ import com.realitysink.cover.runtime.SLFunction;
  * inline cache.
  */
 @NodeInfo(shortName = "invoke")
-public final class SLInvokeNode extends SLExpressionNode {
+public final class SLInvokeNode extends CoverTypedExpressionNode {
 
     @Child private SLExpressionNode functionNode;
     @Children private final SLExpressionNode[] argumentNodes;
@@ -95,5 +97,10 @@ public final class SLInvokeNode extends SLExpressionNode {
             return true;
         }
         return super.isTaggedWith(tag);
+    }
+
+    @Override
+    public CoverType getType() {
+        return CoverType.VOID; // FIXME: should be the return type of the function!
     }
 }

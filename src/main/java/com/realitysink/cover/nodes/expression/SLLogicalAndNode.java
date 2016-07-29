@@ -40,11 +40,13 @@
  */
 package com.realitysink.cover.nodes.expression;
 
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.ShortCircuit;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 /**
  * This class declares specializations similar to the extensively documented {@link SLAddNode}. It
@@ -56,8 +58,8 @@ import com.realitysink.cover.nodes.SLBinaryNode;
  * whether a child needs to be executed based on the result of already executed children.
  */
 @NodeInfo(shortName = "&&")
-@SuppressWarnings("unused")
-public abstract class SLLogicalAndNode extends SLBinaryNode {
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class SLLogicalAndNode extends CoverTypedExpressionNode {
 
 //    /**
 //     * This method is called after the left child was evaluated, but before the right child is
@@ -85,5 +87,9 @@ public abstract class SLLogicalAndNode extends SLBinaryNode {
     @Specialization
     protected boolean doBoolean(boolean left, boolean right) { // FIXME: we evaluate them all!
         return left && right;
+    }
+    @Override
+    public CoverType getType() {
+        return CoverType.BOOLEAN;
     }
 }

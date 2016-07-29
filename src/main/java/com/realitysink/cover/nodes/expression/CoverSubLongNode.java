@@ -40,29 +40,26 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
-@NodeInfo(shortName = "%")
-public abstract class SLModNode extends SLBinaryNode {
-
-    @Specialization(rewriteOn = ArithmeticException.class)
-    protected long div(long left, long right) throws ArithmeticException {
-        return left % right;
-    }
+/**
+ * This class is similar to the extensively documented {@link SLAddNode}.
+ */
+@NodeInfo(shortName = "-")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverSubLongNode extends CoverTypedExpressionNode {
 
     @Specialization
-    protected double div(double left, double right) {
-        return left % right;
+    protected long sub(long left, long right) {
+        return left - right;
     }
-    
-    @Specialization
-    @TruffleBoundary
-    protected BigInteger div(BigInteger left, BigInteger right) {
-        return left.mod(right);
+
+    public CoverType getType() {
+        return CoverType.LONG;
     }
 }

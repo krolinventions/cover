@@ -42,13 +42,15 @@ package com.realitysink.cover.nodes.expression;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 
 /**
  * Constant literal for a String value.
  */
 @NodeInfo(shortName = "const")
-public final class SLStringLiteralNode extends SLExpressionNode {
+public final class SLStringLiteralNode extends CoverTypedExpressionNode {
 
     private final String value;
 
@@ -59,5 +61,10 @@ public final class SLStringLiteralNode extends SLExpressionNode {
     @Override
     public String executeGeneric(VirtualFrame frame) {
         return value;
+    }
+
+    @Override
+    public CoverType getType() {
+        return CoverType.STRING;
     }
 }

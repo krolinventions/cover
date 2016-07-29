@@ -38,29 +38,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.nodes.local;
 
+import com.oracle.truffle.api.dsl.NodeField;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.SLFunction;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
+/**
+ * Node to read a local variable from a function's {@link VirtualFrame frame}. The Truffle frame API
+ * allows to store primitive values of all Java primitive types, and Object values. This means that
+ * all SL types that are objects are handled by the {@link #readObject} method.
+ * <p>
+ * We use the primitive type only when the same primitive type is uses for all writes. If the local
+ * variable is type-polymorphic, then the value is always stored as an Object, i.e., primitive
+ * values are boxed. Even a mixture of {@code long} and {@code boolean} writes leads to both being
+ * stored boxed.
+ */
+@NodeField(name = "slot", type = FrameSlot.class)
+public abstract class CoverReadDoubleVariableNode extends CoverTypedExpressionNode {
+
+    /**
+     * Returns the descriptor of the accessed local variable. The implementation of this method is
+     * created by the Truffle DSL based on the {@link NodeField} annotation on the class.
+     */
+    protected abstract FrameSlot getSlot();
+
+    @Specialization
+    protected double readLong(VirtualFrame frame) {
+        return FrameUtil.getDoubleSafe(frame, getSlot());
+    }
     
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
-    }
-
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
+        return CoverType.DOUBLE;
     }
 }

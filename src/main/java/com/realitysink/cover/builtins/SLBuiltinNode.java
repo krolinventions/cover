@@ -43,6 +43,8 @@ package com.realitysink.cover.builtins;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeField;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunctionRegistry;
@@ -62,11 +64,16 @@ import com.realitysink.cover.runtime.SLFunctionRegistry;
 @NodeChild(value = "arguments", type = SLExpressionNode[].class)
 @NodeField(name = "context", type = SLContext.class)
 @GenerateNodeFactory
-public abstract class SLBuiltinNode extends SLExpressionNode {
+public abstract class SLBuiltinNode extends CoverTypedExpressionNode {
 
     /**
      * Accessor for the {@link SLContext}. The implementation of this method is generated
      * automatically based on the {@link NodeField} annotation on the class.
      */
     public abstract SLContext getContext();
+    
+    @Override
+    public CoverType getType() {
+        return CoverType.VOID;
+    }
 }

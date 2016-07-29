@@ -40,32 +40,27 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
 /**
- * This class is similar to the {@link SLLessThanNode}.
+ * This class is similar to the extensively documented {@link SLAddNode}. The only difference: the
+ * specialized methods return {@code boolean} instead of the input types.
  */
-@NodeInfo(shortName = "<=")
-public abstract class SLLessOrEqualNode extends SLBinaryNode {
+@NodeInfo(shortName = "<")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverLessThanLongNode extends CoverTypedExpressionNode {
 
     @Specialization
-    protected boolean lessOrEqual(long left, long right) {
-        return left <= right;
+    protected boolean lessThan(long left, long right) {
+        return left < right;
     }
 
-    @Specialization
-    protected boolean lessOrEqual(double left, double right) {
-        return left <= right;
-    }
-
-    @Specialization
-    @TruffleBoundary
-    protected boolean lessOrEqual(BigInteger left, BigInteger right) {
-        return left.compareTo(right) <= 0;
-    }
+    public CoverType getType() {
+        return CoverType.BOOLEAN;
+    }    
 }

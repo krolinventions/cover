@@ -38,35 +38,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.realitysink.cover.nodes.expression;
+package com.realitysink.cover.nodes.local;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.ExactMath;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.realitysink.cover.nodes.SLBinaryNode;
+import com.realitysink.cover.nodes.CoverReference;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
-/**
- * This class is similar to the extensively documented {@link SLAddNode}.
- */
-@NodeInfo(shortName = "*")
-public abstract class SLMulNode extends SLBinaryNode {
-
-    @Specialization(rewriteOn = ArithmeticException.class)
-    protected long mul(long left, long right) {
-        return ExactMath.multiplyExact(left, right);
-    }
-
+@NodeChildren({@NodeChild("destination"), @NodeChild("value")})
+@NodeInfo(shortName="=")
+public abstract class CoverWriteLongVariableNode extends CoverTypedExpressionNode {
     @Specialization
-    protected double mul(double left, double right) {
-        return left * right;
+    protected long writeLong(VirtualFrame frame, CoverReference ref, long value) {
+        frame.setLong(ref.getFrameSlot(), value);
+        return value;
     }
-
-    @Specialization
-    @TruffleBoundary
-    protected BigInteger mul(BigInteger left, BigInteger right) {
-        return left.multiply(right);
+    
+    public CoverType getType() {
+        return CoverType.LONG;
     }
 }

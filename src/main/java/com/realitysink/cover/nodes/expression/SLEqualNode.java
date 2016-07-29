@@ -43,8 +43,12 @@ package com.realitysink.cover.nodes.expression;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLBinaryNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 import com.realitysink.cover.runtime.SLFunction;
@@ -61,7 +65,8 @@ import com.realitysink.cover.runtime.SLNull;
  * {@link SLLogicalNotNode negate} the {@code ==} operator.
  */
 @NodeInfo(shortName = "==")
-public abstract class SLEqualNode extends SLBinaryNode {
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class SLEqualNode extends CoverTypedExpressionNode {
 
     @Specialization
     protected boolean equal(long left, long right) {
@@ -123,5 +128,9 @@ public abstract class SLEqualNode extends SLBinaryNode {
     protected boolean equal(Object left, Object right) {
         assert !left.equals(right);
         return false;
+    }
+    
+    public CoverType getType() {
+        return CoverType.BOOLEAN;
     }
 }

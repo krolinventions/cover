@@ -1,11 +1,15 @@
 package com.realitysink.cover.nodes.local;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.realitysink.cover.nodes.CoverType;
+import com.realitysink.cover.nodes.CoverType.BasicType;
+import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
-public class CoverNewArrayNode extends SLExpressionNode {
+public class CoverNewArrayNode extends CoverTypedExpressionNode {
     private final String typeName;
     @Child
     private SLExpressionNode length;
@@ -34,5 +38,21 @@ public class CoverNewArrayNode extends SLExpressionNode {
         } else {
             throw new CoverRuntimeException(this, "unsupported array type: " + typeName);
         }        
+    }
+
+    @Override
+    public CoverType getType() {
+        CompilerAsserts.neverPartOfCompilation();
+        if ("int".equals(typeName)) {
+            return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
+        } else if ("long".equals(typeName)) {
+            return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
+        } else if ("char".equals(typeName)) {
+            return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
+        } else if ("double".equals(typeName)) {
+            return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.DOUBLE));
+        } else {
+            throw new CoverRuntimeException(this, "unsupported array type: " + typeName);
+        }
     }
 }

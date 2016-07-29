@@ -40,27 +40,27 @@
  */
 package com.realitysink.cover.nodes.expression;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
-import com.realitysink.cover.runtime.SLFunction;
 
-@NodeInfo(shortName = "func")
-public final class CoverFunctionLiteralNode extends CoverTypedExpressionNode {
-    private final SLFunction function;
-    
-    public CoverFunctionLiteralNode(SLFunction function) {
-        this.function = function;
+/**
+ * This class is similar to the extensively documented {@link SLAddNode}. Divisions by 0 throw the
+ * same {@link ArithmeticException exception} as in Java, SL has no special handling for it to keep
+ * the code simple.
+ */
+@NodeInfo(shortName = "/")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverDivLongNode extends CoverTypedExpressionNode {
+    @Specialization
+    protected long div(long left, long right) {
+        long result = left / right;
+        return result;
     }
-
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return function;
-    }
-
-    @Override
     public CoverType getType() {
-        return CoverType.FUNCTION;
-    }
+        return CoverType.LONG;
+    }    
 }
