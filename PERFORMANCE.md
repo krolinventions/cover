@@ -21,4 +21,14 @@ Benchmarks Game](http://benchmarksgame.alioth.debian.org/).
 | 2016-07-29 | 20.1       |          | Move local array definition out of the loop. |
 | 2016-07-31 | 20.3       | 521.2    |  |
 
-For comparison, on this machine (i7 870, 2.93 GHz) the fastest single core C implementation is gcc9, and it runs in 14.7 seconds. The Java1 implementation needs 24.1 seconds.
+Benchmarks were run on a i7 870 (2.93 GHz).
+
+### Comparison
+
+For comparison, here are the fastest times for the gcc implementations. OpenMP was *not* used, so these run single-core.
+
+| Benchmark  | Time (s) | Implementation |
+| ---        | ---      | --- |
+| Mandelbrot | 14.7     | gcc9 |
+| Mandelbrot | 24.1     | java1 |
+| Fannkuch   | 24.5     | gcc5 |
