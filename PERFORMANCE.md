@@ -7,7 +7,7 @@ Computers are fast, and hardware is cheap. Still, it is nice to enjoy some perfo
 In order to keep track of the performance of Cover we're using the [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/).
 
 | Date       | Mandelbrot | Fannkuch | Change |
-| ---        | ---        |          | --- |
+| ---        | ---        | ---      | --- |
 | 2016-07-25 | 152.0      |          | First running version. |
 | 2016-07-26 | 53.0       |          | Switch to faster implementation mandelbrot_gcc2_split.cover. |
 | 2016-07-26 | 47.6       |          | Handle doubles unboxed if possible. |
