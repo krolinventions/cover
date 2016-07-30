@@ -26,6 +26,9 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Layout;
+import com.oracle.truffle.api.object.Property;
+import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.realitysink.cover.CoverLanguage;
@@ -42,6 +45,9 @@ import com.realitysink.cover.nodes.CoverType.BasicType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLRootNode;
 import com.realitysink.cover.nodes.SLStatementNode;
+import com.realitysink.cover.nodes.access.CoverCreateObjectNode;
+import com.realitysink.cover.nodes.access.CoverReadDoublePropertyNodeGen;
+import com.realitysink.cover.nodes.access.CoverReadLongPropertyNodeGen;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
@@ -83,17 +89,23 @@ import com.realitysink.cover.nodes.local.CoverReadDoubleVariableNodeGen;
 import com.realitysink.cover.nodes.local.CoverReadLongArgumentNodeGen;
 import com.realitysink.cover.nodes.local.CoverReadLongArrayValueNodeGen;
 import com.realitysink.cover.nodes.local.CoverReadLongVariableNodeGen;
+import com.realitysink.cover.nodes.local.CoverReadObjectVariableNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteDoubleArrayElementNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteDoubleNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLongArrayElementNodeGen;
 import com.realitysink.cover.nodes.local.CoverWriteLongNodeGen;
+import com.realitysink.cover.nodes.local.CoverWriteObjectNodeGen;
+import com.realitysink.cover.nodes.local.CoverWritePropertyNode;
+import com.realitysink.cover.nodes.local.CoverWritePropertyNodeGen;
 import com.realitysink.cover.nodes.local.CreateLocalDoubleArrayNode;
 import com.realitysink.cover.nodes.local.CreateLocalLongArrayNode;
 import com.realitysink.cover.runtime.SLFunction;
+import com.realitysink.cover.runtime.SLObjectType;
 
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
@@ -119,12 +131,14 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArrayDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArraySubscriptExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTBinaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCastExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompoundStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDoStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTEqualsInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTExpressionStatement;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFieldReference;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTForStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTFunctionDeclarator;
@@ -138,6 +152,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTUnaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTVisibilityLabel;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTWhileStatement;
 import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
 import org.eclipse.cdt.internal.core.parser.SavedFilesProvider;
@@ -222,7 +237,7 @@ public class CoverParser {
     }
 
     private SLStatementNode processStatement(CoverScope scope, IASTNode node) {
-        //info(node, "processStatement for " + node.getClass().getSimpleName());
+        info(node, "processStatement for " + node.getClass().getSimpleName());
         SLStatementNode result;
         if (node instanceof CPPASTFunctionDefinition) {
             result = processFunctionDefinition(scope, (CPPASTFunctionDefinition) node);
@@ -259,33 +274,13 @@ public class CoverParser {
 
     private SLStatementNode processTypedef(CoverScope scope, CPPASTSimpleDeclaration node) {
         IASTDeclSpecifier declSpecifier = node.getDeclSpecifier();
-        if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
-            CPPASTNamedTypeSpecifier d = (CPPASTNamedTypeSpecifier) declSpecifier;
-            String oldType = d.getName().toString();
-            
-            IASTDeclarator[] declarators = node.getDeclarators();
-            for (IASTDeclarator declarator : declarators) {
-                String newType = declarator.getName().toString();
-                scope.addTypeDef(oldType, newType);
-            }
-            return new CoverNopExpression();
-        } else if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
-            CPPASTSimpleDeclSpecifier d = (CPPASTSimpleDeclSpecifier) declSpecifier;
-            String oldType = "";
-            if (d.isLong()) {
-                oldType = "long";
-            } else {
-                throw new CoverParseException(node, "unsupported typedef type");
-            }
-            IASTDeclarator[] declarators = node.getDeclarators();
-            for (IASTDeclarator declarator : declarators) {
-                String newType = declarator.getName().toString();
-                scope.addTypeDef(oldType, newType);
-            }
-            return new CoverNopExpression();
-        } else {
-            throw new CoverParseException(node, "unknown declSpecifier: " + declSpecifier.getClass().getSimpleName());
+        CoverType oldType = processDeclSpecifier(scope, declSpecifier);
+        IASTDeclarator[] declarators = node.getDeclarators();
+        for (IASTDeclarator declarator : declarators) {
+            String newType = declarator.getName().toString();
+            scope.addType(newType, oldType);
         }
+        return new CoverNopExpression();
     }
 
     private SLStatementNode processIfStatement(CoverScope scope, CPPASTIfStatement node) {
@@ -390,7 +385,7 @@ public class CoverParser {
         return whileNode;
     }
 
-    private CoverTypedExpressionNode processExpression(CoverScope scope, IASTExpression expression, String requestedType) {
+    private CoverTypedExpressionNode processExpression(CoverScope scope, IASTExpression expression, CoverType type) {
         if (expression == null) {
             throw new CoverParseException(null, "null expression");
         }
@@ -404,17 +399,34 @@ public class CoverParser {
         } else if (expression instanceof CPPASTIdExpression) {
             result = processId(scope, (CPPASTIdExpression) expression);                    
         } else if (expression instanceof CPPASTFunctionCallExpression) {
-            result = processFunctionCall(scope, expression, requestedType);
+            result = processFunctionCall(scope, expression, type);
         } else if (expression instanceof CPPASTUnaryExpression) {
             result = processUnary(scope, (CPPASTUnaryExpression) expression);
         } else if (expression instanceof CPPASTCastExpression) {
             warn(expression, "ignoring cast");
             result = processExpression(scope, ((CPPASTCastExpression)expression).getOperand(), null);
+        } else if (expression instanceof CPPASTFieldReference) {
+            result = processFieldReference(scope, (CPPASTFieldReference)expression, null);
         } else {
             throw new CoverParseException(expression, "unknown expression type " + expression.getClass().getSimpleName());
         }
         result.setSourceSection(createSourceSectionForNode("expression", expression));
         return result;
+    }
+
+    private CoverTypedExpressionNode processFieldReference(CoverScope scope, CPPASTFieldReference expression,
+            Object object) {
+        ICPPASTExpression owner = expression.getFieldOwner();
+        CoverTypedExpressionNode ownerExpression = processExpression(scope, owner, null);
+        String field = expression.getFieldName().toString();
+        CoverType memberType = ownerExpression.getType().getObjectMembers().get(field);
+        if (memberType.getBasicType() == BasicType.LONG) {
+            return CoverReadLongPropertyNodeGen.create(ownerExpression, memberType, field);
+        } else if (memberType.getBasicType() == BasicType.DOUBLE) {
+            return CoverReadDoublePropertyNodeGen.create(ownerExpression, memberType, field);
+        } else {
+            throw new CoverParseException(expression, "unsupported property type");
+        }
     }
 
     private CoverTypedExpressionNode processArraySubscriptExpression(CoverScope scope,
@@ -631,6 +643,15 @@ public class CoverParser {
                 throw new CoverParseException(node, "unsupported array type for assignment " + elementType);
             }
              
+        } else if (node instanceof CPPASTFieldReference) {
+            CPPASTFieldReference fieldReference = (CPPASTFieldReference) node;
+            CoverTypedExpressionNode owner = processExpression(scope, fieldReference.getFieldOwner(), null);
+            String field = fieldReference.getFieldName().toString();
+            CoverType memberType = owner.getType().getObjectMembers().get(field);
+            if (memberType == null) {
+                throw new CoverParseException(node, "field does not exist");
+            }
+            return CoverWritePropertyNodeGen.create(owner, value, field, memberType);
         }
         throw new CoverParseException(node, "unknown destination type: " + node.getClass().getSimpleName());
     }
@@ -644,6 +665,8 @@ public class CoverParser {
             return CoverWriteLongNodeGen.create(value, ref.getFrameSlot());
         } else if (ref.getType().getBasicType() == BasicType.DOUBLE) {
             return CoverWriteDoubleNodeGen.create(value, ref.getFrameSlot());
+        } else if (ref.getType().getBasicType() == BasicType.OBJECT) {
+            return CoverWriteObjectNodeGen.create(value, ref.getFrameSlot());
         } else {
             throw new CoverParseException(node, "unsupported variable write");
         }
@@ -674,9 +697,16 @@ public class CoverParser {
         return processDeclaration(scope, s);
     }
 
-    // FIXME: use processType in this function
     private SLStatementNode processDeclaration(CoverScope scope, CPPASTSimpleDeclaration node) {
+        printTree(node, 1);
+        
+        // NOTE: this can also be a typedef!
+        
+        // Part 1: find the type
         IASTDeclSpecifier declSpecifier = node.getDeclSpecifier();
+        CoverType type = processDeclSpecifier(scope, declSpecifier);
+        
+        // Part 2: declare variables
         IASTDeclarator[] declarators = node.getDeclarators();
         List<SLStatementNode> nodes = new ArrayList<SLStatementNode>();
         for (int i=0;i<declarators.length;i++) {
@@ -697,25 +727,12 @@ public class CoverParser {
                     warn(node, "ignoring const");
                 }
             }
-            String typeName = scope.typedefTranslate(parts[parts.length-1]);
             
             if (declarator instanceof CPPASTArrayDeclarator) {
                 // we don't support initializers yet, so keep it empty
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 CoverTypedExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
                 if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
-                    CoverType type;
-                    if ("int".equals(typeName)) {
-                        type = new CoverType(BasicType.LONG);
-                    } else if ("long".equals(typeName)) {
-                        type = new CoverType(BasicType.LONG);
-                    } else if ("char".equals(typeName)) {
-                        type = new CoverType(BasicType.LONG);
-                    } else if ("double".equals(typeName)) {
-                        type = new CoverType(BasicType.DOUBLE);
-                    } else {
-                        throw new CoverParseException(node, "unsupported array type: " + typeName);
-                    }
                     System.err.println(name+" declared as array of " + type.getBasicType());
                     CoverType arrayType = new CoverType(BasicType.ARRAY).setArrayType(type);
                     CoverReference ref = scope.define(node, name, arrayType);
@@ -731,41 +748,103 @@ public class CoverParser {
                 }
             } else if (declarator instanceof CPPASTDeclarator) {
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
-                if (declSpecifier instanceof CPPASTNamedTypeSpecifier) {
-                    CPPASTNamedTypeSpecifier namedTypeSpecifier = (CPPASTNamedTypeSpecifier) declSpecifier;
-                    typeName = scope.typedefTranslate(namedTypeSpecifier.getName().toString());
-                }
-                IASTPointerOperator[] pointerOperators = d.getPointerOperators();
-                CoverType type;
-                if (pointerOperators.length > 0) {
-                    warn(d, "pointer found: setting type to object, but should probably do smarter things");
-                    type = new CoverType(BasicType.OBJECT);
-                } else if ("int".equals(typeName)) {
-                    type = new CoverType(BasicType.LONG);
-                } else if ("long".equals(typeName)) {
-                    type = new CoverType(BasicType.LONG);
-                } else if ("char".equals(typeName)) {
-                    type = new CoverType(BasicType.LONG);
-                } else if ("double".equals(typeName)) {
-                    type = new CoverType(BasicType.DOUBLE);
-                } else {
-                    throw new CoverParseException(node, "unsupported type: " + typeName);
-                }
                 //System.err.println(name+" declared as " + frameSlot.getKind());
                 CoverReference ref = scope.define(node, name, type);
                 CPPASTEqualsInitializer initializer = (CPPASTEqualsInitializer) d.getInitializer();
                 if (initializer != null) {
-                    CoverTypedExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), typeName);
+                    CoverTypedExpressionNode expression = processExpression(scope, (IASTExpression) initializer.getInitializerClause(), type);
                     nodes.add(createSimpleAssignmentNode(node, ref, expression));
                 } else {
                     // FIXME: initialize according to type
-                    nodes.add(createSimpleAssignmentNode(node, ref, new SLLongLiteralNode(0)));
+                    if (type.getBasicType() == BasicType.LONG ||
+                            type.getBasicType() == BasicType.DOUBLE) {
+                        nodes.add(createSimpleAssignmentNode(d, ref, new SLLongLiteralNode(0)));
+                    } else if (type.getBasicType() == BasicType.OBJECT) {
+                        nodes.add(createSimpleAssignmentNode(d, ref, new CoverCreateObjectNode(type)));
+                    } else {
+                        warn(node, "unknown type; not initialized");
+                    }
                 }
             } else {
                 throw new CoverParseException(node, "unknown declarator type: " + declarators[i].getClass().getSimpleName());
             }
         }
+        if (nodes.isEmpty()) {
+            warn(node, "no declarators found");
+        }
         return new SLBlockNode(nodes.stream().toArray(SLStatementNode[]::new));
+    }
+
+    private CoverType processDeclSpecifier(CoverScope scope, IASTDeclSpecifier node) {
+        if (node instanceof CPPASTCompositeTypeSpecifier) {
+            info(node, "found class/struct");
+            CoverType newType = new CoverType(BasicType.OBJECT);
+            CPPASTCompositeTypeSpecifier c = (CPPASTCompositeTypeSpecifier) node;
+            String className = c.getName().toString();
+            IASTDeclaration[] declarations = c.getDeclarations(false);
+            // GK 2016-07-30: I'm not sure what's going on with layouts and shapes but
+            // let's give this a try.
+            Layout layout = Layout.createLayout();
+            Shape shape = layout.createShape(SLObjectType.SINGLETON);
+            for (IASTDeclaration d : declarations) {
+                
+                if (d instanceof CPPASTSimpleDeclaration) {
+                    CPPASTSimpleDeclaration x = (CPPASTSimpleDeclaration) d;
+                    CoverType memberType = processDeclSpecifier(scope, x.getDeclSpecifier());
+                    for (IASTDeclarator declarator : x.getDeclarators()) {
+                        String name = declarator.getName().toString();
+                        newType.getObjectMembers().put(name, memberType);
+                        // FIXME: also process initializers?
+                        Object initialValue = null;
+                        if (memberType.getBasicType() == BasicType.LONG) {
+                            initialValue = (long) 0;
+                        } else if (memberType.getBasicType() == BasicType.DOUBLE) {
+                            initialValue = (double) 0.0;
+                        } else {
+                            warn(declarator, "unknown member type " + memberType + ", not initialized");
+                        }
+                        shape = shape.defineProperty(name, initialValue, 0);
+                    }
+                } else if (d instanceof CPPASTVisibilityLabel) {
+                    warn(d, "ignoring visibility label");
+                } else {
+                    throw new CoverParseException(d, "usupported member type " + d.getClass().getSimpleName());
+                }
+            }
+            newType.setShape(shape);
+            scope.addType(className, newType);
+            return newType;
+        } else if (node instanceof CPPASTSimpleDeclSpecifier) {
+            // int i;
+            CPPASTSimpleDeclSpecifier d = (CPPASTSimpleDeclSpecifier) node;
+            switch (d.getType()) {
+            case CPPASTSimpleDeclSpecifier.t_unspecified:
+                if (!d.isLong()) throw new CoverParseException(node, "unspecified is not a long!");
+                return CoverType.LONG;
+            case CPPASTSimpleDeclSpecifier.t_int:
+                return CoverType.LONG;
+            case CPPASTSimpleDeclSpecifier.t_double:
+                return CoverType.DOUBLE;
+            default:
+                throw new CoverParseException(node, "unsupported basic type: " + d.getType());
+            }
+        } else if (node instanceof CPPASTNamedTypeSpecifier) {
+            // Test test;
+            CPPASTNamedTypeSpecifier d = (CPPASTNamedTypeSpecifier) node;
+            String oldTypeName = d.getName().toString();
+            CoverType type = scope.findType(oldTypeName);            
+            if (type == null) {
+                throw new CoverParseException(node, "type not found");
+            }
+            return type;
+        } else {
+            throw new CoverParseException(node, "cannot process declaration with type specifier " + node.getClass().getSimpleName());
+        }
+    }
+
+    private CPPASTSimpleDeclaration declarator(CPPASTSimpleDeclaration d) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     private void warn(IASTNode node, String message) {
@@ -797,7 +876,7 @@ public class CoverParser {
         }
     }
 
-    private CoverTypedExpressionNode processFunctionCall(CoverScope scope, IASTNode node, String requestedType) {
+    private CoverTypedExpressionNode processFunctionCall(CoverScope scope, IASTNode node, CoverType type) {
         CPPASTFunctionCallExpression functionCall = (CPPASTFunctionCallExpression) node;
         String rawName = functionCall.getFunctionNameExpression().getRawSignature();
 
@@ -821,8 +900,8 @@ public class CoverParser {
         } else if ("putc".equals(rawName)) {
             return CoverPutcBuiltinNodeGen.create(argumentArray[0], argumentArray[1]);
         } else if ("malloc".equals(rawName)) {
-            info(node, "inserting malloc for type " + requestedType);
-            return new CoverNewArrayNode(requestedType, argumentArray[0]);
+            info(node, "inserting malloc for type " + type);
+            return new CoverNewArrayNode(type, argumentArray[0]);
         } else if ("free".equals(rawName)) {
             return new CoverNopExpression();
         } else {
@@ -842,6 +921,8 @@ public class CoverParser {
                     return CoverReadDoubleVariableNodeGen.create(ref.getFrameSlot());
                 } else if (ref.getType().getBasicType().equals(BasicType.ARRAY)) {
                     return CoverReadArrayVariableNodeGen.create(ref.getFrameSlot());
+                } else if (ref.getType().getBasicType().equals(BasicType.OBJECT)) {
+                    return CoverReadObjectVariableNodeGen.create(ref.getType(), ref.getFrameSlot());
                 } else {
                     throw new CoverParseException(id, "unsupported variable read " + ref.getType());
                 }
@@ -874,7 +955,7 @@ public class CoverParser {
         for (int i = 0;i<parameters.length;i++) {
             ICPPASTParameterDeclaration parameter = parameters[i];
             String name = parameter.getDeclarator().getName().getRawSignature();
-            CoverType type = processType(scope, node, parameter.getDeclSpecifier());
+            CoverType type = processDeclSpecifier(scope, parameter.getDeclSpecifier());
             CoverReference ref = newScope.define(node, name, type);
             
             // copy to local var in the prologue
@@ -908,30 +989,6 @@ public class CoverParser {
         CoverReference reference = scope.define(node, functionName, new CoverType(BasicType.FUNCTION));
         reference.setFunction(function);
         return new CoverNopExpression();
-    }
-
-    private CoverType processType(CoverScope scope, CPPASTFunctionDefinition node, IASTDeclSpecifier declSpecifier) {
-        String rawTypeName = declSpecifier.getRawSignature();
-        String parts[] = rawTypeName.split(" ");
-        if (parts.length > 1) {
-            if (parts[0].equals("typedef")) {
-                throw new CoverParseException(node, "type definition is actually a typedef!");
-            }
-            if (!parts[0].equals("const")) {
-                throw new CoverParseException(node, "unknown declaration type: " + parts[0]);
-            } else {
-                warn(node, "ignoring const");
-            }
-        }
-        String untranslatedTypeName = scope.typedefTranslate(parts[parts.length-1]); // FIXME: make this a real lookup!
-        String typeName = scope.typedefTranslate(untranslatedTypeName);
-        switch (typeName) {
-        case "char": return new CoverType(BasicType.LONG);
-        case "int": return new CoverType(BasicType.LONG);
-        case "long": return new CoverType(BasicType.LONG);
-        case "double": return new CoverType(BasicType.DOUBLE);
-        default: throw new CoverParseException(node, "unknown basic type " + typeName);
-        }
     }
 
     private SourceSection createSourceSectionForNode(String identifier, IASTNode expression) {

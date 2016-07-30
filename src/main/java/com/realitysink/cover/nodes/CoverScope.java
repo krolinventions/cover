@@ -29,8 +29,8 @@ import com.realitysink.cover.runtime.SLFunction;
 
 public class CoverScope {
     private FrameDescriptor frameDescriptor = new FrameDescriptor();
-    private Map<String,CoverReference> definitions = new HashMap<String, CoverReference>();
-    private Map<String,String> typedefs = new HashMap<String, String>();
+    private Map<String,CoverReference> definitions = new HashMap<>();
+    private Map<String,CoverType> types = new HashMap<>();
     private CoverScope parent;
     
     public CoverScope(CoverScope parent) {
@@ -71,18 +71,18 @@ public class CoverScope {
         return ref;
     }
     
-    public void addTypeDef(String oldType, String newType) {
-        System.err.println("adding new type " + newType + " (" + oldType + ")");
-        typedefs.put(newType, typedefTranslate(oldType));
+    public void addType(String name, CoverType type) {
+        types.put(name, type);
     }
-    public String typedefTranslate(String rawSignature) {
-        String translated = typedefs.get(rawSignature);
-        if (translated != null) {
-            return translated;
+    
+    public CoverType findType(String name) {
+        CoverType type = types.get(name);
+        if (type != null) {
+            return type;
         } else if (parent != null) {
-            return parent.typedefTranslate(rawSignature);
+            return parent.findType(name);
         } else {
-            return rawSignature; // FIXME: check?
+            return null;
         }
     }
 }

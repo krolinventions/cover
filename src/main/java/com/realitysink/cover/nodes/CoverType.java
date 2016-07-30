@@ -16,12 +16,14 @@
 package com.realitysink.cover.nodes;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.object.Shape;
 import com.realitysink.cover.parser.CoverParseException;
 
 /**
@@ -49,6 +51,7 @@ public class CoverType {
     public static CoverType FUNCTION = new CoverType(BasicType.FUNCTION);
     public static CoverType STRING = new CoverType(BasicType.STRING);
     public static CoverType ARRAY = new CoverType(BasicType.ARRAY);
+    public static CoverType OBJECT = new CoverType(BasicType.OBJECT);
     
     private BasicType basicType;
     
@@ -58,7 +61,8 @@ public class CoverType {
     /*
      * For variables.
      */
-    private Map<String, CoverType> objectMembers;
+    private Map<String, CoverType> objectMembers = new HashMap<String, CoverType>();
+    private Shape shape;
     
     private CoverType arrayType;
     
@@ -137,10 +141,17 @@ public class CoverType {
 
     public boolean canAccept(CoverType type) {
         CompilerAsserts.neverPartOfCompilation();
+        if (this.equals(type)) {
+            return true;
+        }
         if (isPrimitiveType(null) && getBasicType() == type.getBasicType()) {
             return true; // FIXME, array types!
         }
         if (getBasicType() == BasicType.DOUBLE && type.getBasicType() == BasicType.LONG) {
+            return true;
+        }
+        if (getBasicType() == BasicType.LONG && type.getBasicType() == BasicType.DOUBLE) {
+            // FIXME: warn!
             return true;
         }
         if (basicType == BasicType.ARRAY_ELEMENT && getTypeOfArrayContents().canAccept(type)) {
@@ -213,5 +224,13 @@ public class CoverType {
         return "CoverType [basicType=" + basicType + ", functionArguments=" + Arrays.toString(functionArguments)
                 + ", functionReturn=" + functionReturn + ", objectMembers=" + objectMembers + ", arrayType="
                 + arrayType + "]";
+    }
+
+    public Shape getShape() {
+        return shape;
+    }
+
+    public void setShape(Shape shape) {
+        this.shape = shape;
     }    
 }

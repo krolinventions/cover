@@ -25,12 +25,12 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
 public class CoverNewArrayNode extends CoverTypedExpressionNode {
-    private final String typeName;
+    private final CoverType type;
     @Child
     private SLExpressionNode length;
     
-    public CoverNewArrayNode(String typeName, SLExpressionNode length) {
-        this.typeName = typeName;
+    public CoverNewArrayNode(CoverType type, SLExpressionNode length) {
+        this.type = type;
         this.length = length;
     }
 
@@ -42,32 +42,28 @@ public class CoverNewArrayNode extends CoverTypedExpressionNode {
         } catch (UnexpectedResultException e) {
             throw new CoverRuntimeException(this, "could not create array", e);
         }
-        if ("int".equals(typeName)) {
+        if (type.getBasicType() == BasicType.LONG) {
             return new long[l];
-        } else if ("long".equals(typeName)) {
-            return new long[l];
-        } else if ("char".equals(typeName)) {
-            return new long[l];
-        } else if ("double".equals(typeName)) {
+        } else if (type.getBasicType() == BasicType.DOUBLE) {
             return new double[l];
         } else {
-            throw new CoverRuntimeException(this, "unsupported array type: " + typeName);
+            throw new CoverRuntimeException(this, "unsupported array type: " + type);
         }        
     }
 
     @Override
     public CoverType getType() {
         CompilerAsserts.neverPartOfCompilation();
-        if ("int".equals(typeName)) {
+        if ("int".equals(type)) {
             return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
-        } else if ("long".equals(typeName)) {
+        } else if ("long".equals(type)) {
             return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
-        } else if ("char".equals(typeName)) {
+        } else if ("char".equals(type)) {
             return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.LONG));
-        } else if ("double".equals(typeName)) {
+        } else if ("double".equals(type)) {
             return new CoverType(BasicType.ARRAY).setArrayType(new CoverType(BasicType.DOUBLE));
         } else {
-            throw new CoverRuntimeException(this, "unsupported array type: " + typeName);
+            throw new CoverRuntimeException(this, "unsupported array type: " + type);
         }
     }
 }

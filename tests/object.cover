@@ -1,0 +1,16 @@
+
+class Test {
+public:
+	int intMember;
+	double doubleMember;
+};
+
+int main() {
+	int i;
+	Test test;
+	printf("%d %f\n", test.intMember, test.doubleMember);
+	test.intMember = 1;
+	test.doubleMember = 3.14;
+	printf("%d %f\n", test.intMember, test.doubleMember);
+	return 0;
+}
