@@ -4,8 +4,7 @@ Computers are fast, and hardware is cheap. Still, it is nice to enjoy some perfo
 
 ## History
 
-In order to keep track of the performance of Cover we're using the [The Computer Language
-Benchmarks Game](http://benchmarksgame.alioth.debian.org/).
+In order to keep track of the performance of Cover we're using the [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/).
 
 | Date       | Mandelbrot | Fannkuch | Change |
 | ---        | ---        |          | --- |
