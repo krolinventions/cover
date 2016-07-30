@@ -12,8 +12,7 @@ Benchmarks Game](http://benchmarksgame.alioth.debian.org/). Currrently only the 
 | 2016-07-25 | 152.0      | First running version. |
 | 2016-07-26 | 53.0       | Switch to faster implementation mandelbrot_gcc2_split.cover. |
 | 2016-07-26 | 47.6       | Handle doubles unboxed if possible. |
-| 2016-07-26 | 38.3       | Add unboxed long[] and double[] arrays & switch to 
-mandelbrot_gcc9_modified.cover. | 
+| 2016-07-26 | 38.3       | Add unboxed long[] and double[] arrays & switch to mandelbrot_gcc9_modified.cover. |
 | 2016-07-27 | 34.2       | Variable scope + malloc builtin |
 | 2016-07-28 | 38.1       | #include support |
 | 2016-07-28 | 250.7 (!)  | Parse-time type system. |
