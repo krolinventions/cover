@@ -2,7 +2,7 @@
 
 Cover is a safe subset of C++ on the JVM using Graal/Truffle. With Cover you can run existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace. If you want full C++ support, but don't need memory safety, take a look at [Sulong](https://github.com/graalvm/sulong).
 
-Cover is licensed under the UPL licence. 
+90% of Cover is licensed under the [Apache License 2.0](LICENSE-APACHE), there are some [UPL](LICENSE-UPL) licensed parts left from the SimpleLanguage implementation that was used as a base.
 
 ## FAQ
 
