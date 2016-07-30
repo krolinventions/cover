@@ -28,11 +28,11 @@ public class CoverNopExpression extends CoverTypedExpressionNode {
 
     @Override
     public CoverType getType() {
-        return CoverType.VOID;
+        return CoverType.BOOLEAN;
     }
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
-        return null;
+        return true;
     }
 }

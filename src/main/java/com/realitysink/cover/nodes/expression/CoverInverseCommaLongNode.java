@@ -13,24 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.realitysink.cover.nodes.local;
+package com.realitysink.cover.nodes.expression;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.realitysink.cover.nodes.CoverType;
 import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 
-@NodeChildren({@NodeChild("array"),@NodeChild("expressionNode")})
-public abstract class CoverReadLongArrayValueNode extends CoverTypedExpressionNode {
+/**
+ * The INVERSE "comma" operator. Evaluates both expressions and returns the value of the FIRST.
+ * @author gerard
+ *
+ */
+@NodeInfo(shortName = "+")
+@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
+public abstract class CoverInverseCommaLongNode extends CoverTypedExpressionNode {
     @Specialization
-    public long readLong(VirtualFrame frame, long[] array, long index) {
-        return array[(int) index];
+    protected long add(long left, Object right) { // FIXME: are there faster ways to ignore the first node?
+        return left;
     }
-    
-    @Override
     public CoverType getType() {
         return CoverType.LONG;
-    }    
+    }
 }

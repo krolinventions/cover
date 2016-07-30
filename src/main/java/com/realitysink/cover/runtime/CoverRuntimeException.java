@@ -33,6 +33,9 @@ public class CoverRuntimeException extends RuntimeException {
     }
     
     private static String nodeDescription(Node node) {
+        if (node.getSourceSection() == null || node.getSourceSection().getSource() == null) {
+            return "<unknown>: ";
+        }
         return node.getSourceSection().getSource().getName()+":"+node.getSourceSection().getStartLine()+": " + node.getSourceSection().getCode()+": ";
     }
 }

@@ -50,10 +50,13 @@ import com.realitysink.cover.nodes.access.CoverReadDoublePropertyNodeGen;
 import com.realitysink.cover.nodes.access.CoverReadLongPropertyNodeGen;
 import com.realitysink.cover.nodes.call.SLInvokeNode;
 import com.realitysink.cover.nodes.controlflow.SLBlockNode;
+import com.realitysink.cover.nodes.controlflow.SLBreakNode;
 import com.realitysink.cover.nodes.controlflow.SLFunctionBodyNode;
 import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
+import com.realitysink.cover.nodes.expression.CoverCommaLongNodeGen;
+import com.realitysink.cover.nodes.expression.CoverConditionalExpressionNode;
 import com.realitysink.cover.nodes.expression.CoverAddDoubleNodeGen;
 import com.realitysink.cover.nodes.expression.CoverAddLongNode;
 import com.realitysink.cover.nodes.expression.CoverAddLongNodeGen;
@@ -61,6 +64,7 @@ import com.realitysink.cover.nodes.expression.CoverDivDoubleNodeGen;
 import com.realitysink.cover.nodes.expression.CoverDivLongNodeGen;
 import com.realitysink.cover.nodes.expression.CoverDoubleLiteralNode;
 import com.realitysink.cover.nodes.expression.CoverFunctionLiteralNode;
+import com.realitysink.cover.nodes.expression.CoverInverseCommaLongNodeGen;
 import com.realitysink.cover.nodes.expression.CoverLessOrEqualDoubleNodeGen;
 import com.realitysink.cover.nodes.expression.CoverLessOrEqualLongNodeGen;
 import com.realitysink.cover.nodes.expression.CoverLessThanDoubleNodeGen;
@@ -130,9 +134,11 @@ import org.eclipse.cdt.core.parser.ScannerInfo;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArrayDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTArraySubscriptExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTBinaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTBreakStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCastExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTCompoundStatement;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTConditionalExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarationStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTDoStatement;
@@ -262,6 +268,8 @@ public class CoverParser {
             result =  processIfStatement(scope, (CPPASTIfStatement) node);
         } else if (node instanceof CPPASTSimpleDeclaration) {
             result =  processDeclaration(scope, (CPPASTSimpleDeclaration) node);
+        } else if (node instanceof CPPASTBreakStatement) {
+            result =  new SLBreakNode();
         } else {
             printTree(node, 1);
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
@@ -387,8 +395,10 @@ public class CoverParser {
 
     private CoverTypedExpressionNode processExpression(CoverScope scope, IASTExpression expression, CoverType type) {
         if (expression == null) {
-            throw new CoverParseException(null, "null expression");
+            // FIXME: do we want to silently do this?
+            return new CoverNopExpression();
         }
+        printTree(expression, 1);
         CoverTypedExpressionNode result;
         if (expression instanceof CPPASTBinaryExpression) {
             result = processBinaryExpression(scope, (CPPASTBinaryExpression) expression);
@@ -407,11 +417,22 @@ public class CoverParser {
             result = processExpression(scope, ((CPPASTCastExpression)expression).getOperand(), null);
         } else if (expression instanceof CPPASTFieldReference) {
             result = processFieldReference(scope, (CPPASTFieldReference)expression, null);
+        } else if (expression instanceof CPPASTConditionalExpression) {
+            result = processConditionalExpression(scope, (CPPASTConditionalExpression)expression, null);
         } else {
             throw new CoverParseException(expression, "unknown expression type " + expression.getClass().getSimpleName());
         }
         result.setSourceSection(createSourceSectionForNode("expression", expression));
         return result;
+    }
+
+    private CoverTypedExpressionNode processConditionalExpression(CoverScope scope,
+            CPPASTConditionalExpression expression, Object object) {
+        CoverTypedExpressionNode condition = processExpression(scope, expression.getLogicalConditionExpression(),null);
+        CoverTypedExpressionNode positive = processExpression(scope, expression.getPositiveResultExpression(), null);
+        CoverTypedExpressionNode negative = processExpression(scope, expression.getNegativeResultExpression(),null);
+        CoverType resultType = positive.getType().combine(expression, negative.getType());
+        return new CoverConditionalExpressionNode(condition, positive, negative, resultType);
     }
 
     private CoverTypedExpressionNode processFieldReference(CoverScope scope, CPPASTFieldReference expression,
@@ -466,14 +487,21 @@ public class CoverParser {
             CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = SLEqualNodeGen.create(leftNode, rightNode);
         } else if (operator == CPPASTBinaryExpression.op_greaterThan) {
-            // FIXME: this messes with evaluation order!
             CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
             CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
             result = createLessThanNode(expression, rightNode, leftNode);
+        } else if (operator == CPPASTBinaryExpression.op_greaterEqual) {
+            CoverTypedExpressionNode leftNode = processExpression(scope, expression.getOperand1(), null);
+            CoverTypedExpressionNode rightNode = processExpression(scope, expression.getOperand2(), null);
+            result = createLessOrEqualNode(expression, rightNode, leftNode);
         } else if (operator == CPPASTBinaryExpression.op_plusAssign) {
             CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
             CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
             result = createWriteVariableNode(scope, expression.getOperand1(), createAddNode(expression, source, change));
+        } else if (operator == CPPASTBinaryExpression.op_minusAssign) {
+            CoverTypedExpressionNode change = processExpression(scope, expression.getOperand2(), null);
+            CoverTypedExpressionNode source = processExpression(scope, expression.getOperand1(), null);
+            result = createWriteVariableNode(scope, expression.getOperand1(), createSubNode(expression, source, change));
         } else if (operator == CPPASTBinaryExpression.op_assign) {
             CoverTypedExpressionNode value = processExpression(scope, expression.getOperand2(), null);
             result = createWriteVariableNode(scope, expression.getOperand1(), value);
@@ -675,21 +703,28 @@ public class CoverParser {
     private CoverTypedExpressionNode processUnary(CoverScope scope, CPPASTUnaryExpression node) {
         int operator = node.getOperator();
         final int change;
+        CoverTypedExpressionNode readNode = processExpression(scope, node.getOperand(), null);
         if (operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_prefixIncr) {
             change = 1;
         } else if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_prefixDecr) {
             change = -1;
         } else if (operator == IASTUnaryExpression.op_bracketedPrimary) {
-            return processExpression(scope, node.getOperand(), null);
+            return readNode;
         } else if (operator == IASTUnaryExpression.op_tilde) {
-            return SLBinaryNotNodeGen.create(processExpression(scope, node.getOperand(), null));
+            return SLBinaryNotNodeGen.create(readNode);
         } else {
             throw new CoverParseException(node, "Unsupported operator type " + operator);
         }
         
-        // build assign(name, addnode(name, 1))
-        CoverAddLongNode addNode = CoverAddLongNodeGen.create(processExpression(scope, node.getOperand(), null), new SLLongLiteralNode(change));
-        return createWriteVariableNode(scope, node.getOperand(), addNode);
+        // turn (++i) into (i=i+1)
+        CoverAddLongNode addNode = CoverAddLongNodeGen.create(readNode, new SLLongLiteralNode(change));
+        CoverTypedExpressionNode writeNode = createWriteVariableNode(scope, node.getOperand(), addNode);
+        if (operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_postFixDecr) {
+            // Use the "inverse comma" operator to return the old value of i
+            return CoverInverseCommaLongNodeGen.create(readNode, writeNode);
+        } else {
+            return writeNode;
+        }
     }
 
     private SLStatementNode processDeclarationStatement(CoverScope scope, CPPASTDeclarationStatement node) {
@@ -732,19 +767,15 @@ public class CoverParser {
                 // we don't support initializers yet, so keep it empty
                 CPPASTArrayDeclarator arrayDeclarator = (CPPASTArrayDeclarator) declarator;
                 CoverTypedExpressionNode size = processExpression(scope, arrayDeclarator.getArrayModifiers()[0].getConstantExpression(), null);
-                if (declSpecifier instanceof CPPASTSimpleDeclSpecifier) {
-                    System.err.println(name+" declared as array of " + type.getBasicType());
-                    CoverType arrayType = new CoverType(BasicType.ARRAY).setArrayType(type);
-                    CoverReference ref = scope.define(node, name, arrayType);
-                    if (type.getBasicType() == BasicType.DOUBLE) {
-                        nodes.add(new CreateLocalDoubleArrayNode(ref.getFrameSlot(), size));
-                    } else if (type.getBasicType() == BasicType.LONG) {
-                        nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size));
-                    } else {
-                        throw new CoverParseException(node, "unsupported array type " + type.getBasicType());
-                    }
+                System.err.println(name+" declared as array of " + type.getBasicType());
+                CoverType arrayType = new CoverType(BasicType.ARRAY).setArrayType(type);
+                CoverReference ref = scope.define(node, name, arrayType);
+                if (type.getBasicType() == BasicType.DOUBLE) {
+                    nodes.add(new CreateLocalDoubleArrayNode(ref.getFrameSlot(), size));
+                } else if (type.getBasicType() == BasicType.LONG) {
+                    nodes.add(new CreateLocalLongArrayNode(ref.getFrameSlot(), size));
                 } else {
-                    throw new CoverParseException(node, "unsupported array declaration type: " + declSpecifier.getClass().getSimpleName());
+                    throw new CoverParseException(node, "unsupported array type " + type.getBasicType());
                 }
             } else if (declarator instanceof CPPASTDeclarator) {
                 CPPASTDeclarator d = (CPPASTDeclarator) declarators[i];
@@ -820,6 +851,8 @@ public class CoverParser {
             switch (d.getType()) {
             case CPPASTSimpleDeclSpecifier.t_unspecified:
                 if (!d.isLong()) throw new CoverParseException(node, "unspecified is not a long!");
+                return CoverType.LONG;
+            case CPPASTSimpleDeclSpecifier.t_char:
                 return CoverType.LONG;
             case CPPASTSimpleDeclSpecifier.t_int:
                 return CoverType.LONG;
