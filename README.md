@@ -2,12 +2,10 @@
 
 Cover is a safe subset of C++ on the JVM using Graal/Truffle. With Cover you can run existing C++ code on the JVM in a safe way. It is aimed at algorithms or library functions that would take a lot of effort to replace. If you want full C++ support, but don't need memory safety, take a look at [Sulong](https://github.com/graalvm/sulong).
 
-90% of Cover is licensed under the [Apache License 2.0](LICENSE-APACHE), there are some [UPL](LICENSE-UPL) licensed parts left from the SimpleLanguage implementation that was used as a base.
-
 ## FAQ
 
-* *How fast is it?* For the *mandelbrot* benchmark Cover reaches 70% of the speed of C. See [Performance](PERFORMANCE.md) for details.
-* *Can I use this for real world projects?* No, as only just the parts of C needed to run some toy programs have been implemented. 
+* **How fast is it?** For the *mandelbrot* benchmark Cover reaches 70% of the speed of C. See [Performance](PERFORMANCE.md) for details.
+* **Can I use this for real world projects?** No, as only just the parts of C needed to run some toy programs have been implemented. 
 
 ## Design
 
@@ -90,5 +88,5 @@ Does NOT support the following C++ features:
 
 ## License
 
-The Truffle framework is licensed under the [GPL 2 with Classpath exception](http://openjdk.java.net/legal/gplv2+ce.html).
-The Cover language is licensed under the [Universal Permissive License (UPL)](http://opensource.org/licenses/UPL).
+Most of Cover is licensed under the [Apache License 2.0](LICENSE-APACHE). There are some [UPL](LICENSE-UPL) licensed files left from the SimpleLanguage implementation that was used as a base. Those are expected to be replaced soon.
+
