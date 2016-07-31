@@ -82,7 +82,7 @@ import com.realitysink.cover.slparser.SLParser;
 import com.realitysink.cover.test.SLTestRunner.TestCase;
 import com.realitysink.cover.SLException;
 import com.realitysink.cover.CoverLanguage;
-import com.realitysink.cover.SLMain;
+import com.realitysink.cover.CoverMain;
 import com.realitysink.cover.builtins.SLBuiltinNode;
 import com.realitysink.cover.runtime.SLContext;
 import com.realitysink.cover.runtime.SLFunction;
@@ -341,7 +341,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
                     out.println(result);
                 }
             } catch (UnsupportedSpecializationException ex) {
-                out.println(SLMain.formatTypeError(ex));
+                out.println(CoverMain.formatTypeError(ex));
             } catch (SLUndefinedNameException ex) {
                 out.println(ex.getMessage());
             }

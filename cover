@@ -22,4 +22,4 @@ do
   esac
 done
 
-$JAVACMD $JAVA_ARGS -polyglot -cp ./target/classes -cp ./target/cover-*.jar com.realitysink.cover.SLMain $PROGRAM_ARGS
+$JAVACMD $JAVA_ARGS -polyglot -cp ./target/classes -cp ./target/cover-*.jar com.realitysink.cover.CoverMain $PROGRAM_ARGS
