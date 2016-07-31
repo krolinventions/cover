@@ -23,7 +23,7 @@ import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
 public class CreateLocalDoubleArrayNode extends SLStatementNode {
-    private FrameSlot frameSlot;
+    private final FrameSlot frameSlot;
     @Child
     SLExpressionNode size;
     

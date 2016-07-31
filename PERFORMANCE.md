@@ -20,6 +20,7 @@ In order to keep track of the performance of Cover we're using the [The Computer
 | 2016-07-29 | 20.1       |          | Mandelbrot: move local array definition out of the loop. |
 | 2016-07-31 | 20.3       | 521.2    |  |
 | 2016-07-31 | 20.3       | 354.9    | Fannkuch: block size to 1 |
+| 2016-07-31 | 21.1       | 311.3    | FrameSlot in  CreateLocalXArray is now final!|
 
 Benchmarks were run on a i7 870 (2.93 GHz).
 

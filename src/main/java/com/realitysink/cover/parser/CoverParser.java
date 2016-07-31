@@ -56,7 +56,7 @@ import com.realitysink.cover.nodes.controlflow.SLIfNode;
 import com.realitysink.cover.nodes.controlflow.SLReturnNode;
 import com.realitysink.cover.nodes.controlflow.SLWhileNode;
 import com.realitysink.cover.nodes.expression.CoverCommaLongNodeGen;
-import com.realitysink.cover.nodes.expression.CoverConditionalExpressionNode;
+import com.realitysink.cover.nodes.expression.CoverObjectConditionalExpressionNode;
 import com.realitysink.cover.nodes.expression.CoverAddDoubleNodeGen;
 import com.realitysink.cover.nodes.expression.CoverAddLongNode;
 import com.realitysink.cover.nodes.expression.CoverAddLongNodeGen;
@@ -432,7 +432,7 @@ public class CoverParser {
         CoverTypedExpressionNode positive = processExpression(scope, expression.getPositiveResultExpression(), null);
         CoverTypedExpressionNode negative = processExpression(scope, expression.getNegativeResultExpression(),null);
         CoverType resultType = positive.getType().combine(expression, negative.getType());
-        return new CoverConditionalExpressionNode(condition, positive, negative, resultType);
+        return new CoverObjectConditionalExpressionNode(condition, positive, negative, resultType);
     }
 
     private CoverTypedExpressionNode processFieldReference(CoverScope scope, CPPASTFieldReference expression,

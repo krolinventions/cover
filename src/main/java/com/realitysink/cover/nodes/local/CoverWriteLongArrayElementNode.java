@@ -15,6 +15,7 @@
  */
 package com.realitysink.cover.nodes.local;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -32,6 +33,7 @@ public abstract class CoverWriteLongArrayElementNode extends CoverTypedExpressio
         try {
             array[(int) index] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreter();
             throw new CoverRuntimeException(this, "index " + index + " out of bounds");
         }
         return value;
