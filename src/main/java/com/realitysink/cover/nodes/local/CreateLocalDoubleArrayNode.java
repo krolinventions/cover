@@ -40,7 +40,6 @@ public class CreateLocalDoubleArrayNode extends SLStatementNode {
         } catch (UnexpectedResultException e) {
             throw new CoverRuntimeException(this, e);
         }
-        //System.err.println("creating double array of size " + s + " in " + frameSlot);
         frame.setObject(frameSlot, new double[s]);
     }
 }
