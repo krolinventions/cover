@@ -17,8 +17,9 @@ In order to keep track of the performance of Cover we're using the [The Computer
 | 2016-07-28 | 250.7 (!)  |          | Parse-time type system. |
 | 2016-07-28 | 249.7 (!)  |          | All expressions are now typed. |
 | 2016-07-29 | 21.3       |          | Don't use CoverReferences at runtime, just emit the correct write nodes directly. |
-| 2016-07-29 | 20.1       |          | Move local array definition out of the loop. |
+| 2016-07-29 | 20.1       |          | Mandelbrot: move local array definition out of the loop. |
 | 2016-07-31 | 20.3       | 521.2    |  |
+| 2016-07-31 | 20.3       | 354.9    | Fannkuch: block size to 1 |
 
 Benchmarks were run on a i7 870 (2.93 GHz).
 

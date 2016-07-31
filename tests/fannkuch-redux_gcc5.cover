@@ -37,9 +37,10 @@ int main(){
    // block_Size from being set to 0. This also causes smaller values of n to
    // be computed serially which is faster and uses less resources for small
    // values of n.
-   const intnative_t block_Size=factorial_Lookup_Table[n]/
-     (factorial_Lookup_Table[n]<PREFERRED_NUMBER_OF_BLOCKS_TO_USE ?
-     1 : PREFERRED_NUMBER_OF_BLOCKS_TO_USE);
+   //const intnative_t block_Size=factorial_Lookup_Table[n]/
+   //  (factorial_Lookup_Table[n]<PREFERRED_NUMBER_OF_BLOCKS_TO_USE ?
+   //  1 : PREFERRED_NUMBER_OF_BLOCKS_TO_USE);
+   const intnative_t block_Size=1;
 
    intnative_t maximum_Flip_Count=0, checksum=0;
 
