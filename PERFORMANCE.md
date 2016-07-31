@@ -24,7 +24,7 @@ Benchmarks were run on a i7 870 (2.93 GHz).
 
 ### Comparison
 
-For comparison, here are the fastest times for the gcc implementations. OpenMP was *not* used, so these run single-core.
+For comparison, here are the fastest times for other implementations. OpenMP was *not* used, so these run single-core.
 
 | Benchmark  | Time (s) | Implementation |
 | ---        | ---      | --- |
