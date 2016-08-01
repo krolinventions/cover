@@ -35,7 +35,7 @@ import com.realitysink.cover.runtime.CoverRuntimeException;
 @NodeInfo(shortName="=")
 public abstract class CoverWritePropertyNode extends CoverTypedExpressionNode {
     @Specialization
-    protected Object writeLongArrayElement(VirtualFrame frame, DynamicObject object, Object value) {
+    protected Object writeLongArrayElement(DynamicObject object, Object value) {
         System.err.println("setting property " + getPropertyName() + " to " + value);
         if (!object.set(getPropertyName(), value)) {
             throw new CoverRuntimeException(this, "property " + getPropertyName() + " not found");

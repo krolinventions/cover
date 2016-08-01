@@ -19,11 +19,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.Map;
+
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
+import com.oracle.truffle.api.vm.PolyglotEngine.Instrument;
 import com.oracle.truffle.api.vm.PolyglotEngine.Value;
+import com.oracle.truffle.tools.TruffleProfiler;
 import com.realitysink.cover.runtime.SLNull;
 import com.realitysink.cover.runtime.SLUndefinedNameException;
 
@@ -51,6 +55,18 @@ public final class CoverMain {
         PolyglotEngine engine = PolyglotEngine.newBuilder().setIn(in).setOut(out).build();
         assert engine.getLanguages().containsKey(CoverLanguage.MIME_TYPE);
 
+        Map<String, Instrument> instruments = engine.getInstruments();
+        for (String name : instruments.keySet()) {
+            System.err.println(name);
+        }
+        Instrument profiler = instruments.get(CoverProfiler.ID);
+        if (profiler == null) {
+          System.err.println("Truffle profiler not available. Might be a class path issue");
+        }
+        //profiler.setEnabled(true);
+        // The above doesn't work? It checks for a property:
+        //System.setProperty("truffle.profiling.enabled", "true");
+        
         try {
             Value result = engine.eval(source);
 
@@ -72,7 +88,7 @@ public final class CoverMain {
                 ex.printStackTrace(out);
             }
         }
-
+        System.err.println("Profiler enabled: " + profiler.isEnabled());
         engine.dispose();
     }
 }

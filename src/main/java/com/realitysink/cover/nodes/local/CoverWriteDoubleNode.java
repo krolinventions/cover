@@ -29,7 +29,7 @@ public abstract class CoverWriteDoubleNode extends CoverTypedExpressionNode {
     protected abstract FrameSlot getSlot();
 
     @Specialization
-    protected double writeLong(VirtualFrame frame, double value) {
+    protected double writeDouble(VirtualFrame frame, double value) {
         frame.setDouble(getSlot(), value);
         return value;
     }

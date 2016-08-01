@@ -243,7 +243,7 @@ public class CoverParser {
     }
 
     private SLStatementNode processStatement(CoverScope scope, IASTNode node) {
-        info(node, "processStatement for " + node.getClass().getSimpleName());
+        //info(node, "processStatement for " + node.getClass().getSimpleName());
         SLStatementNode result;
         if (node instanceof CPPASTFunctionDefinition) {
             result = processFunctionDefinition(scope, (CPPASTFunctionDefinition) node);
@@ -254,8 +254,10 @@ public class CoverParser {
             result =  processDeclarationStatement(scope, (CPPASTDeclarationStatement) node);
         } else if (node instanceof CPPASTWhileStatement) {
             result =  processWhile(scope, (CPPASTWhileStatement) node);
+            result.addStatementTag();
         } else if (node instanceof CPPASTDoStatement) {
             result =  processDo(scope, (CPPASTDoStatement) node);
+            result.addStatementTag();
         } else if (node instanceof CPPASTCompoundStatement) {
             result =  processCompoundStatement(scope, (CPPASTCompoundStatement) node);
         } else if (node instanceof CPPASTReturnStatement) {
@@ -264,6 +266,7 @@ public class CoverParser {
             result =  processBinaryExpression(scope, (CPPASTBinaryExpression) node);
         } else if (node instanceof CPPASTForStatement) {
             result =  processForStatement(scope, (CPPASTForStatement) node);
+            result.addStatementTag();
         } else if (node instanceof CPPASTIfStatement) {
             result =  processIfStatement(scope, (CPPASTIfStatement) node);
         } else if (node instanceof CPPASTSimpleDeclaration) {
@@ -398,7 +401,7 @@ public class CoverParser {
             // FIXME: do we want to silently do this?
             return new CoverNopExpression();
         }
-        printTree(expression, 1);
+        //printTree(expression, 1);
         CoverTypedExpressionNode result;
         if (expression instanceof CPPASTBinaryExpression) {
             result = processBinaryExpression(scope, (CPPASTBinaryExpression) expression);
@@ -1008,6 +1011,7 @@ public class CoverParser {
         SLStatementNode blockNode = processStatement(newScope, s);
         SLBlockNode wrappedBodyNode = new SLBlockNode(new SLStatementNode[] {readArgumentsNode, blockNode});
         final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(wrappedBodyNode);
+        functionBodyNode.addRootTag();
         
         // we will now add code to read the arguments into the frame
         // load local variables from arguments

@@ -13,7 +13,7 @@ do
     -dump)
       JAVA_ARGS="$JAVA_ARGS -Dgraal.Dump= -Dgraal.MethodFilter=Truffle.* -Dgraal.TruffleBackgroundCompilation=false -Dgraal.TraceTruffleCompilation=true -Dgraal.TraceTruffleCompilationDetails=true" ;;
     -disassemble)
-      JAVA_ARGS="$JAVA_ARGS -XX:CompileCommand=print,*OptimizedCallTarget.callRoot -XX:CompileCommand=exclude,*OptimizedCallTarget.callRoot -Dgraal.TruffleBackgroundCompilation=false -Dgraal.TraceTruffleCompilation=true -Dgraal.TraceTruffleCompilationDetails=true" ;;
+      JAVA_ARGS="$JAVA_ARGS -XX:CompileCommand=print,*OptimizedCallTarget.callRoot -XX:CompileCommand=exclude,*OptimizedCallTarget.callRoot -Dgraal.TruffleBackgroundCompilation=false -Dgraal.TraceTruffleCompilation=true -Dgraal.TraceTruffleCompilationDetails=true -Dgraal.TraceTrufflePerformanceWarnings=true -Dgraal.TraceTruffleCompilationCallTree=true -Dgraal.TraceTruffleTransferToInterpreter=true -Dgraal.TraceTruffleAssumptions=true" ;;
     -J*)
       opt=${opt:2}
       JAVA_ARGS="$JAVA_ARGS $opt" ;;

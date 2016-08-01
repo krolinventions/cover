@@ -341,7 +341,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
                     out.println(result);
                 }
             } catch (UnsupportedSpecializationException ex) {
-                out.println(CoverMain.formatTypeError(ex));
+                out.println(ex.getMessage());
             } catch (SLUndefinedNameException ex) {
                 out.println(ex.getMessage());
             }

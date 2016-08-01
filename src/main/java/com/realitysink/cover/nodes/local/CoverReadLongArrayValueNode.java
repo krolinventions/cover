@@ -25,7 +25,7 @@ import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 @NodeChildren({@NodeChild("array"),@NodeChild("expressionNode")})
 public abstract class CoverReadLongArrayValueNode extends CoverTypedExpressionNode {
     @Specialization
-    public long readLong(VirtualFrame frame, long[] array, long index) {
+    public long readLong(long[] array, long index) {
         return array[(int) index];
     }
     

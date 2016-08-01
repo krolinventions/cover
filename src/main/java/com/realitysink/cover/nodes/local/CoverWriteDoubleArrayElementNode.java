@@ -28,7 +28,7 @@ import com.realitysink.cover.runtime.CoverRuntimeException;
 @NodeInfo(shortName="=")
 public abstract class CoverWriteDoubleArrayElementNode extends CoverTypedExpressionNode {
     @Specialization
-    protected double writeLongArrayElement(VirtualFrame frame, double[] array, long index, double value) {
+    protected double writeLongArrayElement(double[] array, long index, double value) {
         try {
             array[(int) index] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
