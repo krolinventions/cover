@@ -21,8 +21,9 @@ In order to keep track of the performance of Cover we're using the [The Computer
 | 2016-07-31 | 20.3       | 521.2    |  |
 | 2016-07-31 | 20.3       | 354.9    | Fannkuch: block size to 1 |
 | 2016-07-31 | 21.1       | 311.3    | FrameSlot in  CreateLocalXArray is now final!|
+| 2016-08-02 | 20.3       |  51.8    | graal.TruffleBackgroundCompilation=false |
 
-Benchmarks were run on a i7 870 (2.93 GHz).
+Benchmarks were run on a i7 870 (2.93 GHz). The values reported are measured without any warmup. With warmup, benchmarks are about 3 seconds faster.
 
 ### Comparison
 
