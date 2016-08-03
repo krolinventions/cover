@@ -24,6 +24,10 @@ import com.realitysink.cover.nodes.CoverTypedExpressionNode;
 import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
+/*
+ * Deprecated: use one of the specialized versions;
+ */
+@Deprecated
 public class CoverNewArrayNode extends CoverTypedExpressionNode {
     private final CoverType type;
     @Child

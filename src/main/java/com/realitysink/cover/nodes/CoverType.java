@@ -44,14 +44,14 @@ public class CoverType {
         VOID
     }
     
-    public static CoverType VOID = new CoverType(BasicType.VOID);
-    public static CoverType LONG = new CoverType(BasicType.LONG);
-    public static CoverType DOUBLE = new CoverType(BasicType.DOUBLE);
-    public static CoverType BOOLEAN = new CoverType(BasicType.BOOLEAN);
-    public static CoverType FUNCTION = new CoverType(BasicType.FUNCTION);
-    public static CoverType STRING = new CoverType(BasicType.STRING);
-    public static CoverType ARRAY = new CoverType(BasicType.ARRAY);
-    public static CoverType OBJECT = new CoverType(BasicType.OBJECT);
+    public static final CoverType VOID = new CoverType(BasicType.VOID);
+    public static final CoverType LONG = new CoverType(BasicType.LONG);
+    public static final CoverType DOUBLE = new CoverType(BasicType.DOUBLE);
+    public static final CoverType BOOLEAN = new CoverType(BasicType.BOOLEAN);
+    public static final CoverType FUNCTION = new CoverType(BasicType.FUNCTION);
+    public static final CoverType STRING = new CoverType(BasicType.STRING);
+    public static final CoverType ARRAY = new CoverType(BasicType.ARRAY);
+    public static final CoverType OBJECT = new CoverType(BasicType.OBJECT);
     
     private BasicType basicType;
     

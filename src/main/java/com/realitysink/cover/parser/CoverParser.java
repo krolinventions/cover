@@ -153,6 +153,7 @@ import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIdExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTIfStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTLiteralExpression;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTNamedTypeSpecifier;
+import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTNullStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTReturnStatement;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.cpp.CPPASTSimpleDeclaration;
@@ -273,6 +274,8 @@ public class CoverParser {
             result =  processDeclaration(scope, (CPPASTSimpleDeclaration) node);
         } else if (node instanceof CPPASTBreakStatement) {
             result =  new SLBreakNode();
+        } else if (node instanceof CPPASTNullStatement) {
+            result =  new CoverNopExpression();
         } else {
             printTree(node, 1);
             throw new CoverParseException(node, "unknown statement type: " + node.getClass().getSimpleName());
@@ -280,6 +283,7 @@ public class CoverParser {
         if (result.getSourceSection() == null) {
             result.setSourceSection(createSourceSectionForNode("statement", node));
         }
+        result.addStatementTag();
         return result;
     }
 
@@ -365,8 +369,6 @@ public class CoverParser {
         SLStatementNode[] loopNodes = new SLStatementNode[] {bodyNode, iterationNode};
         SLBlockNode loopBlock = new SLBlockNode(loopNodes);
         
-        // TODO: start a new scope, as currently the loop variable will escape!
-        
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, loopBlock);
 
         SLStatementNode[] setupNodes = new SLStatementNode[] {initializerNode, whileNode}; 
@@ -390,7 +392,8 @@ public class CoverParser {
            -CPPASTLiteralExpression (offset: 38,2) -> 10
          -CPPASTCompoundStatement (offset: 42,32) -> {
          */
-        CoverTypedExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition(), null));
+        //CoverTypedExpressionNode conditionNode = SLForceBooleanNodeGen.create(processExpression(scope, node.getCondition(), null));
+        CoverTypedExpressionNode conditionNode = processExpression(scope, node.getCondition(), null);
         SLStatementNode bodyNode = processStatement(scope, node.getBody());
         final SLWhileNode whileNode = new SLWhileNode(conditionNode, bodyNode);
         return whileNode;
@@ -898,13 +901,13 @@ public class CoverParser {
             return new SLStringLiteralNode(noQuotes);
         } else if (y.getKind() == IASTLiteralExpression.lk_integer_constant) {
             String stringValue = new String(y.getValue());
-            final int intValue;
+            final long longValue;
             if (stringValue.startsWith("0x")) {
-                intValue = Integer.parseInt(stringValue.substring(2), 16);
+                longValue = Long.parseLong(stringValue.substring(2), 16);
             } else {
-                intValue = Integer.parseInt(stringValue);
+                longValue = Long.parseLong(stringValue);
             }
-            return new SLLongLiteralNode(intValue);
+            return new SLLongLiteralNode(longValue);
         } else if (y.getKind() == IASTLiteralExpression.lk_float_constant) {
             return new CoverDoubleLiteralNode(Double.parseDouble(new String(y.getValue())));
         } else {

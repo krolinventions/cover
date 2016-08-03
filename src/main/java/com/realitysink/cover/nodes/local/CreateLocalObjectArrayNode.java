@@ -23,12 +23,12 @@ import com.realitysink.cover.nodes.SLExpressionNode;
 import com.realitysink.cover.nodes.SLStatementNode;
 import com.realitysink.cover.runtime.CoverRuntimeException;
 
-public class CreateLocalArrayNode extends SLStatementNode {
+public class CreateLocalObjectArrayNode extends SLStatementNode {
     private final FrameSlot frameSlot;
     @Child
     SLExpressionNode size;
     
-    public CreateLocalArrayNode(FrameSlot frameSlot, SLExpressionNode size) {
+    public CreateLocalObjectArrayNode(FrameSlot frameSlot, SLExpressionNode size) {
         this.frameSlot = frameSlot;
         this.size = size;
     }
